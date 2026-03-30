@@ -1,0 +1,49 @@
+Las recomendaciones de decisión según el riesgo.
+Hacer un modelo basado en reglas o añadirlo al LLM
+El XAI son solo ejemplos de lo que pondria cuando lo añadamos no es apra que ponga exactamente eso 
+
+
+1. Nivel de Riesgo: BAJO (Probabilidad < 0.20)
+Estado: Paciente estable o con alteración mínima.
+
+Recomendación de Decisión: "Continuar monitorización de rutina".
+
+Acciones sugeridas:
+
+Mantener vigilancia de signos vitales según protocolo de planta/UCI.
+
+Repetir evaluación del modelo en 12 horas o ante cambios clínicos bruscos.
+
+XAI (Por qué el modelo dice esto): "Variables estables: PAM > 70 mmHg, Creatinina en rango basal, Glasgow 15."
+
+2. Nivel de Riesgo: MEDIO (Probabilidad 0.20 - 0.60)
+Estado: Sospecha de Sepsis / Disfunción orgánica incipiente.
+
+Recomendación de Decisión: "Activar Protocolo de Sepsis (Bundle de 1 hora)".
+
+Acciones sugeridas (Botones de pedido rápido):
+
+[ ] Laboratorio: Extraer Hemocultivos (x2) y medir Lactato sérico.
+
+[ ] Antibioticoterapia: Iniciar antibióticos de amplio espectro antes de 60 min.
+
+[ ] Fluidos: Valorar carga de cristaloides (30ml/kg) si hay signos de hipoperfusión.
+
+XAI: "Alerta por ascenso en resp_rate_score y temp_score. Posible foco infeccioso detectado."
+
+3. Nivel de Riesgo: ALTO (Probabilidad > 0.60)
+Estado: Shock Séptico inminente o establecido / Fallo multiorgánico.
+
+Recomendación de Decisión: "Intervención Crítica e Inicio de Soporte Inotrópico".
+
+Acciones sugeridas:
+
+[ ] Hemodinámica: Iniciar Noradrenalina si la PAM es < 65 mmHg tras carga inicial.
+
+[ ] Avanzado: Canalizar línea arterial y considerar monitoreo de gasto cardíaco.
+
+[ ] UCI: Evaluar necesidad de ventilación mecánica o traslado urgente a cuidados críticos.
+
+[ ] Control de Fuente: Identificar y drenar foco quirúrgico si existe.
+
+XAI: "Riesgo Crítico: mbp_min < 60, uo_score (oliguria) y gcs_score (deterioro neurológico) detectados."
