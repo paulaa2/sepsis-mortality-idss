@@ -1,0 +1,77 @@
+{
+  "input": "bbdd\\BaseDatos_imputada_knn.csv",
+  "output_dir": "C:\\Users\\Paess\\Documents\\GitHub\\sepsis-mortality-idss\\outputs\\clustering_clinical",
+  "rows": 53493,
+  "feature_columns": [
+    "gender",
+    "admission_age",
+    "ethnicity",
+    "admission_type",
+    "admission_location",
+    "marital_status",
+    "gcs_unable",
+    "sepsis3",
+    "apsiii",
+    "gcs_score",
+    "heart_rate_max",
+    "heart_rate_min",
+    "mbp_min",
+    "mbp_max",
+    "temperature_max",
+    "resp_rate_max",
+    "creatinine_max",
+    "bun_max",
+    "sodium_min",
+    "glucose_max",
+    "urineoutput"
+  ],
+  "numeric_columns": [
+    "admission_age",
+    "sepsis3",
+    "apsiii",
+    "gcs_score",
+    "heart_rate_max",
+    "heart_rate_min",
+    "mbp_min",
+    "mbp_max",
+    "temperature_max",
+    "resp_rate_max",
+    "creatinine_max",
+    "bun_max",
+    "sodium_min",
+    "glucose_max",
+    "urineoutput"
+  ],
+  "categorical_columns": [
+    "gender",
+    "ethnicity",
+    "admission_type",
+    "admission_location",
+    "marital_status",
+    "gcs_unable"
+  ],
+  "methods": [
+    "kmeans",
+    "gmm",
+    "birch"
+  ],
+  "k_values": [
+    3,
+    4,
+    5
+  ],
+  "dbscan_eps": [
+    1.0,
+    1.2
+  ],
+  "dbscan_min_samples": [
+    50
+  ],
+  "selected_model": {
+    "method": "gmm",
+    "config": {
+      "n_clusters": 5
+    }
+  },
+  "reduced_components": 15
+}

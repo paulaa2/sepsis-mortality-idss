@@ -1,0 +1,100 @@
+Resumen de clusters - clustering_clinical
+=========================================
+
+Nota importante:
+Este resumen describe los clusters guardados actualmente en la carpeta
+"outputs/clustering_clinical". La ejecucion se hizo con el preset
+"clinical_core", pensado para capturar fenotipos mas clinicos e interpretables.
+
+Descripcion general
+-------------------
+El enfoque "clinical_core" usa variables clinicas mas cercanas al estado del
+paciente: APSIII, variables hemodinamicas, temperatura, respiracion,
+creatinina, BUN, sodio, glucosa, diuresis y algunas variables basales.
+Por eso los clusters tienden a capturar estilos clinicos distintos de
+presentacion, no solo una escala lineal de gravedad.
+
+Cluster 0
+---------
+- Tamano: 7.463 pacientes (13,95%)
+- Perfil global: fenotipo renal-metabolico de alta gravedad.
+- Rasgos principales:
+  * APSIII muy alto.
+  * Creatinina maxima y BUN maximo muy elevados.
+  * Glucosa maxima alta.
+  * Sodio minimo bajo.
+  * Presion arterial minima relativamente baja.
+  * Diuresis algo reducida frente al grupo mas estable.
+- Interpretacion:
+  Este cluster parece representar a pacientes con una firma clara de
+  disfuncion renal y alteracion metabolica. Es uno de los grupos mas graves
+  y tiene mucho sentido como fenotipo clinico diferenciado.
+
+Cluster 4
+---------
+- Tamano: 8.521 pacientes (15,93%)
+- Perfil global: fenotipo neurologico-inflamatorio grave.
+- Rasgos principales:
+  * GCS_score muy alto dentro de la cohorte.
+  * APSIII elevado.
+  * Temperatura maxima algo mas alta.
+  * MBP_max alto.
+  * Menor carga renal que el cluster 0.
+- Interpretacion:
+  Este cluster tambien representa alta gravedad, pero por una via distinta a la
+  renal. Su firma sugiere una combinacion de mayor gravedad neurologica y
+  componente inflamatorio/sistemico.
+
+Cluster 2
+---------
+- Tamano: 8.883 pacientes (16,61%)
+- Perfil global: grupo intermedio de pacientes mayores con compromiso moderado.
+- Rasgos principales:
+  * Edad relativamente alta.
+  * APSIII intermedio.
+  * Temperatura maxima discretamente elevada.
+  * Algo de carga renal, pero muy inferior al cluster 0.
+  * Hemodinamica y laboratorio sin alteraciones extremas.
+- Interpretacion:
+  Este cluster parece recoger pacientes con sepsis o sospecha de sepsis de
+  gravedad moderada. Es un grupo muy util para una capa de decision
+  "monitorizar estrechamente / activar protocolo".
+
+Cluster 1
+---------
+- Tamano: 4.490 pacientes (8,39%)
+- Perfil global: pacientes de edad avanzada con menor reserva fisiologica.
+- Rasgos principales:
+  * Es el cluster con mayor edad media.
+  * BUN algo elevado.
+  * GCS_score bajo en comparacion con los clusters graves.
+  * MBP_max y temperatura maxima relativamente bajas.
+  * Diuresis algo reducida.
+- Interpretacion:
+  No es el cluster mas extremo por APSIII, pero si parece representar a un
+  fenotipo de paciente mayor y mas fragil, con menor reserva fisiologica.
+
+Cluster 3
+---------
+- Tamano: 24.136 pacientes (45,12%)
+- Perfil global: grupo de baja gravedad y estabilidad relativa.
+- Rasgos principales:
+  * APSIII claramente bajo.
+  * Creatinina y BUN bajos.
+  * Diuresis relativamente alta.
+  * Menor presencia de sepsis3 y menor carga organica.
+  * Es el cluster mas grande de la cohorte.
+- Interpretacion:
+  Este cluster representa a los pacientes mas estables dentro de la base. Es
+  el candidato natural al estrato de menor gravedad.
+
+Conclusiones utiles para el trabajo
+-----------------------------------
+- Este clustering es mas rico clinicamente que el basado en scores.
+- No solo separa gravedad, sino tambien tipos de gravedad:
+  * renal-metabolica
+  * neurologica/inflamatoria
+  * fragilidad/edad avanzada
+  * baja gravedad
+- Es probablemente la mejor base para enlazar despues con explicabilidad y
+  recomendaciones del IDSS, porque permite describir fenotipos de paciente.
