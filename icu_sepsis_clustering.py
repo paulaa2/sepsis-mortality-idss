@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering, Birch, DBSCAN, MiniBatchKMeans
@@ -135,6 +136,7 @@ class ExperimentResult:
     experiment_id: str
     method: str
     config: dict[str, object]
+    fitted_model: object
     labels: np.ndarray
     metrics: dict[str, float]
     cluster_summary: pd.DataFrame
@@ -356,18 +358,25 @@ def build_preprocessor(numeric_cols: list[str], categorical_cols: list[str]) -> 
     )
 
 
-def reduce_dimensions(X: np.ndarray, max_components: int, random_state: int) -> tuple[np.ndarray, int]:
+def reduce_dimensions(
+    X: np.ndarray,
+    max_components: int,
+    random_state: int,
+) -> tuple[np.ndarray, int, TruncatedSVD | None, StandardScaler]:
     if X.shape[1] <= 2:
-        scaled = StandardScaler().fit_transform(X)
-        return scaled, X.shape[1]
+        scaler = StandardScaler()
+        scaled = scaler.fit_transform(X)
+        return scaled, X.shape[1], None, scaler
 
     n_components = min(max_components, X.shape[0] - 1, X.shape[1] - 1)
     if n_components < 2:
         n_components = min(2, X.shape[1])
 
-    reduced = TruncatedSVD(n_components=n_components, random_state=random_state).fit_transform(X)
-    reduced = StandardScaler().fit_transform(reduced)
-    return reduced, n_components
+    svd = TruncatedSVD(n_components=n_components, random_state=random_state)
+    reduced = svd.fit_transform(X)
+    scaler = StandardScaler()
+    reduced = scaler.fit_transform(reduced)
+    return reduced, n_components, svd, scaler
 
 
 def sample_for_metrics(
@@ -726,7 +735,12 @@ def fit_models(
 
     log(f"[clustering] Experimentos previstos: {total_experiments}")
 
-    def register_result(method: str, config: dict[str, object], labels: np.ndarray) -> None:
+    def register_result(
+        method: str,
+        config: dict[str, object],
+        fitted_model: object,
+        labels: np.ndarray,
+    ) -> None:
         if count_clusters(labels) < 2:
             if verbose:
                 log(
@@ -766,6 +780,7 @@ def fit_models(
                 experiment_id=experiment_id,
                 method=method,
                 config=config,
+                fitted_model=fitted_model,
                 labels=labels,
                 metrics=metrics,
                 cluster_summary=cluster_summary,
@@ -834,7 +849,12 @@ def fit_models(
                     model = AgglomerativeClustering(n_clusters=n_clusters, linkage="ward")
                     labels = model.fit_predict(X)
 
-                register_result(method=method, config=config, labels=labels)
+                register_result(
+                    method=method,
+                    config=config,
+                    fitted_model=model,
+                    labels=labels,
+                )
                 elapsed = time.perf_counter() - started_at
                 log(f"[clustering] Tiempo {method} {config}: {elapsed:.1f}s")
 
@@ -853,6 +873,7 @@ def fit_models(
                     register_result(
                         method=method,
                         config=config,
+                        fitted_model=model,
                         labels=labels,
                     )
                     elapsed = time.perf_counter() - started_at
@@ -870,12 +891,31 @@ def save_experiment_outputs(
     comparison: pd.DataFrame,
     output_dir: Path,
     metadata: dict[str, object],
+    preprocessor: ColumnTransformer,
+    svd: TruncatedSVD | None,
+    scaler: StandardScaler,
+    X_reduced: np.ndarray,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     comparison.to_csv(output_dir / "model_comparison.csv", index=False)
     best_result.cluster_summary.to_csv(output_dir / "best_cluster_summary.csv", index=False)
     best_result.profiles.to_csv(output_dir / "best_cluster_profiles.csv", index=False)
     best_result.assignments.to_csv(output_dir / "best_patient_assignments.csv", index=False)
+
+    embedding_columns = [f"dim_{idx + 1}" for idx in range(X_reduced.shape[1])]
+    embeddings_df = pd.DataFrame(X_reduced, columns=embedding_columns)
+    embeddings_df["row_id"] = np.arange(len(embeddings_df))
+    embeddings_df = embeddings_df.merge(
+        best_result.assignments[["row_id", "cluster", "cluster_label", "severity_rank"]],
+        on="row_id",
+        how="left",
+    )
+    embeddings_df.to_csv(output_dir / "reference_patient_embeddings.csv", index=False)
+
+    joblib.dump(preprocessor, output_dir / "clustering_preprocessor.joblib")
+    joblib.dump(svd, output_dir / "clustering_svd.joblib")
+    joblib.dump(scaler, output_dir / "clustering_scaler.joblib")
+    joblib.dump(best_result.fitted_model, output_dir / "clustering_model.joblib")
     (output_dir / "run_metadata.json").write_text(
         json.dumps(metadata, indent=2, ensure_ascii=True),
         encoding="utf-8",
@@ -924,7 +964,7 @@ def main() -> None:
     log(f"[clustering] Matriz preparada con forma: {X_prepared.shape}")
 
     log("[clustering] Aplicando reduccion dimensional...")
-    X_reduced, n_components = reduce_dimensions(
+    X_reduced, n_components, svd, scaler = reduce_dimensions(
         X=X_prepared,
         max_components=args.svd_components,
         random_state=args.random_state,
@@ -976,9 +1016,25 @@ def main() -> None:
             "config": best_result.config,
         },
         "reduced_components": n_components,
+        "artifacts": {
+            "preprocessor": "clustering_preprocessor.joblib",
+            "svd": "clustering_svd.joblib",
+            "scaler": "clustering_scaler.joblib",
+            "model": "clustering_model.joblib",
+            "reference_embeddings": "reference_patient_embeddings.csv",
+        },
     }
     log(f"[clustering] Guardando resultados en: {output_dir}")
-    save_experiment_outputs(best_result, comparison, output_dir, metadata)
+    save_experiment_outputs(
+        best_result,
+        comparison,
+        output_dir,
+        metadata,
+        preprocessor=preprocessor,
+        svd=svd,
+        scaler=scaler,
+        X_reduced=X_reduced,
+    )
 
     print("Mejor experimento de clustering:", flush=True)
     print(f"- metodo: {best_result.method}", flush=True)
