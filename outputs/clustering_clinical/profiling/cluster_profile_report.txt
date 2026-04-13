@@ -1,0 +1,54 @@
+Cluster Profiling Report
+=======================
+
+Este informe resume cada cluster como fenotipo clinico reutilizable para el IDSS.
+
+cluster_0 | renal_metabolic_high_severity
+-----------------------------------------
+Severity rank: 1
+Patients: 7463 (13.95%)
+XGBoost context: mean predicted probability=0.5413, observed mortality test=0.2770
+Clinical snapshot: apsiii=69.38, admission_age=65.15, creatinine_max=3.78, bun_max=57.10, mbp_min=55.34, temperature_max=37.25, urineoutput=1642.52, gcs_score=11.05
+Top high features: creatinine_max (+1.478), bun_max (+1.452), apsiii (+1.111), glucose_max (+0.940), sepsis3 (+0.405)
+Top low features: sodium_min (-0.439), mbp_min (-0.353), urineoutput (-0.117), temperature_max (-0.114), admission_age (+0.014)
+Main XGBoost explanatory features: apsiii (0.7705), admission_age (0.3603), gcs_motor (0.2783), bun_min (0.2445), gcs_eyes (0.2388)
+
+cluster_4 | neurologic_inflammatory_high_severity
+-------------------------------------------------
+Severity rank: 2
+Patients: 8521 (15.93%)
+XGBoost context: mean predicted probability=0.4208, observed mortality test=0.1620
+Clinical snapshot: apsiii=59.56, admission_age=67.43, creatinine_max=1.05, bun_max=20.34, mbp_min=59.33, temperature_max=37.54, urineoutput=1709.68, gcs_score=21.52
+Top high features: gcs_score (+1.258), apsiii (+0.677), mbp_max (+0.596), sepsis3 (+0.354), temperature_max (+0.295)
+Top low features: bun_max (-0.266), creatinine_max (-0.250), glucose_max (-0.122), mbp_min (-0.063), urineoutput (-0.062)
+Main XGBoost explanatory features: apsiii (0.7110), admission_age (0.3812), gcs_motor (0.2761), gcs_eyes (0.2622), glucose_min (0.1975)
+
+cluster_2 | older_intermediate_moderate_severity
+------------------------------------------------
+Severity rank: 3
+Patients: 8883 (16.61%)
+XGBoost context: mean predicted probability=0.3337, observed mortality test=0.0964
+Clinical snapshot: apsiii=46.16, admission_age=68.18, creatinine_max=1.30, bun_max=27.90, mbp_min=58.73, temperature_max=37.43, urineoutput=1780.18, gcs_score=6.07
+Top high features: admission_age (+0.189), sepsis3 (+0.172), temperature_max (+0.134), bun_max (+0.088), apsiii (+0.084)
+Top low features: glucose_max (-0.128), mbp_min (-0.107), sodium_min (-0.091), creatinine_max (-0.089), mbp_max (-0.061)
+Main XGBoost explanatory features: apsiii (0.6637), admission_age (0.4294), gcs_motor (0.2387), gcs_eyes (0.2320), bun_min (0.1901)
+
+cluster_1 | older_frail_lower_severity
+--------------------------------------
+Severity rank: 4
+Patients: 4490 (8.39%)
+XGBoost context: mean predicted probability=0.2574, observed mortality test=0.0773
+Clinical snapshot: apsiii=43.14, admission_age=70.85, creatinine_max=1.40, bun_max=30.31, mbp_min=60.04, temperature_max=37.22, urineoutput=1681.96, gcs_score=1.82
+Top high features: admission_age (+0.343), bun_max (+0.200), sepsis3 (+0.070), heart_rate_min (+0.022), resp_rate_max (+0.020)
+Top low features: gcs_score (-0.352), mbp_max (-0.189), temperature_max (-0.159), urineoutput (-0.085), glucose_max (-0.071)
+Main XGBoost explanatory features: apsiii (0.7515), admission_age (0.3252), gcs_motor (0.2341), bun_min (0.2112), admission_type_2 (0.2026)
+
+cluster_3 | stable_low_severity
+-------------------------------
+Severity rank: 5
+Patients: 24136 (45.12%)
+XGBoost context: mean predicted probability=0.1080, observed mortality test=0.0317
+Clinical snapshot: apsiii=30.57, admission_age=61.64, creatinine_max=0.92, bun_max=16.93, mbp_min=62.60, temperature_max=37.27, urineoutput=1877.32, gcs_score=0.00
+Top high features: mbp_min (+0.173), sodium_min (+0.110), urineoutput (+0.076), heart_rate_min (-0.073), temperature_max (-0.089)
+Top low features: apsiii (-0.605), gcs_score (-0.501), bun_max (-0.425), creatinine_max (-0.331), sepsis3 (-0.326)
+Main XGBoost explanatory features: apsiii (1.0904), admission_age (0.4484), gcs_verbal (0.3227), gcs_motor (0.2784), gcs_eyes (0.2320)
