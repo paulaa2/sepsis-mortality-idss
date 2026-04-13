@@ -27,7 +27,7 @@ from sklearn.preprocessing import OneHotEncoder, RobustScaler, StandardScaler
 
 
 DEFAULT_INPUT = Path("bbdd") / "BaseDatos_imputada_knn.csv"
-DEFAULT_OUTPUT = Path("outputs") / "clustering"
+DEFAULT_OUTPUT = Path("outputs") / "clustering_clinical"
 DEFAULT_CATEGORICAL_COLUMNS = [
     "gender",
     "ethnicity",
