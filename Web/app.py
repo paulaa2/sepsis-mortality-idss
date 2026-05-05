@@ -1,29 +1,55 @@
 from __future__ import annotations
 
-import csv
-import io
-import subprocess
-import sys
-import uuid
+import json
 from pathlib import Path
+import sys
+import traceback
+from uuid import uuid4
 
+import sklearn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
-WEB_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = WEB_DIR.parent
-RUNTIME_DIR = WEB_DIR / "runtime"
-INPUT_DIR = RUNTIME_DIR / "inputs"
-LLM_OUTPUT_DIR = RUNTIME_DIR / "llm_outputs"
-PROMPT_OUTPUT_DIR = PROJECT_DIR / "outputs" / "gemini_prompts"
-DEFAULT_LLM_MODEL = "medgemma:4b"
+from new_patient_pipeline import (
+    DEFAULT_CLUSTER_PROFILE,
+    DEFAULT_CLUSTERING_DIR,
+    DEFAULT_KNOWLEDGE_BASE,
+    DEFAULT_NEIGHBORS,
+    DEFAULT_XGB_DIR,
+    assign_cluster_to_patient,
+    build_patient_feature_snapshot,
+    build_prompt,
+    compute_xgb_outputs,
+    extract_patient_identifiers,
+    load_clustering_artifacts,
+    load_csv,
+    load_json,
+    load_single_patient,
+)
+from ollama_explainer import (
+    DEFAULT_DATABASE_PATH,
+    DEFAULT_MODEL,
+    build_augmented_prompt,
+    call_ollama,
+    find_patient_rows,
+)
 
-for directory in (INPUT_DIR, LLM_OUTPUT_DIR):
-    directory.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="PAID Web")
+WEB_DIR = BASE_DIR / "Web"
+UPLOAD_DIR = BASE_DIR / "outputs" / "web_uploads"
+PROMPT_OUTPUT_DIR = BASE_DIR / "outputs" / "gemini_prompts"
+LLM_OUTPUT_DIR = BASE_DIR / "outputs" / "ollama_responses"
+STATIC_MOUNT = "/static"
+EXPECTED_SKLEARN_VERSION = "1.7.2"
+
+
+app = FastAPI(title="Sepsis Mortality IDSS Web")
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,58 +59,67 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount(STATIC_MOUNT, StaticFiles(directory=str(WEB_DIR)), name="static")
 
-def parse_uploaded_csv(csv_bytes: bytes) -> dict[str, str]:
-    try:
-        text = csv_bytes.decode("utf-8-sig")
-    except UnicodeDecodeError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail="El archivo CSV debe estar codificado en UTF-8.",
-        ) from exc
 
-    sample = text[:2048]
-    try:
-        dialect = csv.Sniffer().sniff(sample, delimiters=",;")
-        delimiter = dialect.delimiter
-    except csv.Error:
-        delimiter = ","
-
-    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
-    rows = list(reader)
-
-    if not rows:
-        raise HTTPException(status_code=400, detail="El CSV subido no contiene filas de datos.")
-
-    if len(rows) != 1:
-        raise HTTPException(
-            status_code=400,
-            detail="El CSV subido debe contener exactamente una fila para el nuevo paciente.",
+def ensure_supported_sklearn_version() -> None:
+    if sklearn.__version__ != EXPECTED_SKLEARN_VERSION:
+        raise RuntimeError(
+            "Version incompatible de scikit-learn. "
+            f"Se esperaba {EXPECTED_SKLEARN_VERSION} y se detecto {sklearn.__version__}. "
+            "Reinstala dependencias con 'pip install -r requirements.txt' "
+            "y 'pip install -r Web\\requirements.txt'."
         )
 
-    return {str(key).strip(): "" if value is None else str(value).strip() for key, value in rows[0].items()}
 
+def build_case_context_from_csv(patient_input_path: Path) -> tuple[dict, str]:
+    xgb_dir = BASE_DIR / DEFAULT_XGB_DIR
+    clustering_dir = BASE_DIR / DEFAULT_CLUSTERING_DIR
+    cluster_profile_path = BASE_DIR / DEFAULT_CLUSTER_PROFILE
+    knowledge_base_path = BASE_DIR / DEFAULT_KNOWLEDGE_BASE
 
-def normalize_gender(value: str) -> str:
-    normalized = value.strip().lower()
-    mapping = {
-        "masculino": "0",
-        "hombre": "0",
-        "male": "0",
-        "m": "0",
-        "femenino": "1",
-        "mujer": "1",
-        "female": "1",
-        "f": "1",
-        "otro": "2",
-        "other": "2",
+    patient_df = load_single_patient(patient_input_path)
+    patient_row = patient_df.iloc[0]
+
+    xgb_outputs, xgb_metadata = compute_xgb_outputs(
+        patient_df=patient_df,
+        xgb_dir=xgb_dir,
+        top_n=5,
+    )
+
+    clustering_metadata = load_json(clustering_dir / "run_metadata.json")
+    cluster_profile_df = load_csv(cluster_profile_path) if cluster_profile_path.exists() else None
+
+    cluster_preprocessor, svd, scaler, reference_embeddings_df = load_clustering_artifacts(
+        clustering_dir=clustering_dir,
+        clustering_metadata=clustering_metadata,
+    )
+    cluster_assignment, cluster_profile = assign_cluster_to_patient(
+        patient_df=patient_df,
+        preprocessor=cluster_preprocessor,
+        svd=svd,
+        scaler=scaler,
+        clustering_metadata=clustering_metadata,
+        reference_embeddings_df=reference_embeddings_df,
+        cluster_profile_df=cluster_profile_df,
+        n_neighbors=DEFAULT_NEIGHBORS,
+    )
+
+    case_context = {
+        "patient_identifiers": extract_patient_identifiers(patient_row),
+        "model_outputs": xgb_outputs,
+        "cluster_assignment": cluster_assignment,
+        "cluster_profile": cluster_profile,
+        "patient_features": build_patient_feature_snapshot(patient_row, xgb_metadata),
     }
-    return mapping.get(normalized, value.strip())
+
+    knowledge_base_text = knowledge_base_path.read_text(encoding="utf-8")
+    prompt = build_prompt(knowledge_base_text=knowledge_base_text, case_context=case_context)
+    return case_context, prompt
 
 
-def merge_patient_context(
-    uploaded_row: dict[str, str],
-    *,
+def append_frontend_metadata(
+    prompt: str,
     nombre: str,
     apellido: str,
     edad: int,
@@ -92,64 +127,46 @@ def merge_patient_context(
     peso: float,
     genero: str,
     etnia: str,
-) -> dict[str, str]:
-    merged = dict(uploaded_row)
-
-    merged["nombre"] = nombre.strip()
-    merged["apellido"] = apellido.strip()
-    merged["nombre_completo"] = f"{nombre.strip()} {apellido.strip()}".strip()
-    merged["edad_formulario"] = str(edad)
-    merged["altura_cm"] = str(altura)
-    merged["peso_kg"] = str(peso)
-    merged["genero_formulario"] = genero.strip()
-    merged["etnia_formulario"] = etnia.strip()
-
-    if not merged.get("admission_age"):
-        merged["admission_age"] = str(edad)
-    if not merged.get("gender"):
-        merged["gender"] = normalize_gender(genero)
-    if not merged.get("ethnicity"):
-        merged["ethnicity"] = etnia.strip()
-
-    for identifier in ("subject_id", "hadm_id", "stay_id", "patient_id", "row_id"):
-        if not merged.get(identifier):
-            merged[identifier] = str(uuid.uuid4().int % 10**8)
-
-    return merged
+) -> str:
+    frontend_context = {
+        "nombre": nombre,
+        "apellido": apellido,
+        "edad_formulario": edad,
+        "altura_cm": altura,
+        "peso_kg": peso,
+        "genero_formulario": genero,
+        "etnia_formulario": etnia,
+    }
+    frontend_json = json.dumps(frontend_context, ensure_ascii=False, indent=2)
+    return (
+        f"{prompt}\n\n"
+        "METADATOS ADICIONALES DEL FORMULARIO WEB\n"
+        "=======================================\n"
+        "Usa estos datos solo como apoyo contextual. "
+        "Si contradicen al CSV estructurado, prioriza el CSV.\n\n"
+        f"{frontend_json}\n"
+    )
 
 
-def save_combined_csv(row: dict[str, str], filename_stub: str) -> Path:
-    fieldnames = list(row.keys())
-    output_path = INPUT_DIR / f"{filename_stub}.csv"
+def persist_outputs(
+    request_id: str,
+    prompt: str,
+    explanation: str,
+) -> tuple[Path, Path]:
+    PROMPT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    LLM_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    with output_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerow(row)
+    prompt_path = PROMPT_OUTPUT_DIR / f"{request_id}_prompt.txt"
+    explanation_path = LLM_OUTPUT_DIR / f"{request_id}_explanation.txt"
 
-    return output_path
+    prompt_path.write_text(prompt, encoding="utf-8")
+    explanation_path.write_text(explanation, encoding="utf-8")
+    return prompt_path, explanation_path
 
 
-def run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
-    try:
-        return subprocess.run(
-            command,
-            cwd=PROJECT_DIR,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except subprocess.CalledProcessError as exc:
-        stderr = exc.stderr.strip() or exc.stdout.strip() or "Sin detalle adicional."
-        raise HTTPException(
-            status_code=500,
-            detail=f"Fallo ejecutando {' '.join(command)}: {stderr}",
-        ) from exc
-    except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=500,
-            detail="No se pudo lanzar Python para ejecutar el pipeline.",
-        ) from exc
+@app.get("/")
+async def serve_index() -> FileResponse:
+    return FileResponse(WEB_DIR / "index.html")
 
 
 @app.post("/api/analizar")
@@ -163,65 +180,78 @@ async def analizar_paciente(
     etnia: str = Form(...),
     archivo: UploadFile = File(...),
 ):
+    ensure_supported_sklearn_version()
+
+    if not archivo.filename or not archivo.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Debes subir un archivo CSV valido.")
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    request_id = f"patient_{uuid4().hex[:10]}"
+    uploaded_csv_path = UPLOAD_DIR / f"{request_id}.csv"
+
     csv_bytes = await archivo.read()
-    uploaded_row = parse_uploaded_csv(csv_bytes)
+    uploaded_csv_path.write_bytes(csv_bytes)
 
-    merged_row = merge_patient_context(
-        uploaded_row,
-        nombre=nombre,
-        apellido=apellido,
-        edad=edad,
-        altura=altura,
-        peso=peso,
-        genero=genero,
-        etnia=etnia,
-    )
+    try:
+        case_context, base_prompt = build_case_context_from_csv(uploaded_csv_path)
 
-    request_id = uuid.uuid4().hex[:12]
-    patient_slug = f"patient_{request_id}"
-    patient_csv_path = save_combined_csv(merged_row, patient_slug)
-    prompt_path = PROMPT_OUTPUT_DIR / f"{patient_slug}_prompt.txt"
-    llm_output_path = LLM_OUTPUT_DIR / f"{patient_slug}_response.txt"
+        database_path = BASE_DIR / DEFAULT_DATABASE_PATH
+        matched_rows = []
+        if database_path.exists():
+            database_df = load_csv(database_path)
+            matched_rows = find_patient_rows(
+                database_df=database_df,
+                case_context=case_context,
+                max_rows=1,
+            )
 
-    run_command(
-        [
-            sys.executable,
-            "new_patient_pipeline.py",
-            "--patient-input",
-            str(patient_csv_path),
-            "--output-dir",
-            str(PROMPT_OUTPUT_DIR),
-        ]
-    )
-
-    run_command(
-        [
-            sys.executable,
-            "ollama_explainer.py",
-            "--prompt-path",
-            str(prompt_path),
-            "--output-path",
-            str(llm_output_path),
-            "--model",
-            DEFAULT_LLM_MODEL,
-        ]
-    )
-
-    if not llm_output_path.exists():
-        raise HTTPException(
-            status_code=500,
-            detail="El pipeline terminó, pero no se generó el archivo con la respuesta del LLM.",
+        prompt_with_db = build_augmented_prompt(
+            base_prompt=base_prompt,
+            matched_rows=matched_rows,
         )
+        final_prompt = append_frontend_metadata(
+            prompt=prompt_with_db,
+            nombre=nombre,
+            apellido=apellido,
+            edad=edad,
+            altura=altura,
+            peso=peso,
+            genero=genero,
+            etnia=etnia,
+        )
+        explanation = call_ollama(
+            prompt_text=final_prompt,
+            model=DEFAULT_MODEL,
+            host=None,
+            temperature=0.2,
+        )
+        prompt_path, explanation_path = persist_outputs(
+            request_id=request_id,
+            prompt=final_prompt,
+            explanation=explanation,
+        )
+    except Exception as exc:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error procesando el paciente: {exc}") from exc
 
-    llm_response = llm_output_path.read_text(encoding="utf-8").strip()
+    model_outputs = case_context["model_outputs"]
+    cluster_assignment = case_context["cluster_assignment"]
 
     return {
         "status": "success",
-        "paciente": merged_row["nombre_completo"],
-        "combined_csv_path": str(patient_csv_path),
+        "paciente": f"{nombre} {apellido}",
+        "request_id": request_id,
+        "predicted_probability": model_outputs["predicted_probability"],
+        "predicted_risk_group": model_outputs["predicted_risk_group"],
+        "cluster_label": cluster_assignment["cluster_label"],
+        "cluster": cluster_assignment["cluster"],
+        "explanation": explanation,
         "prompt_path": str(prompt_path),
-        "llm_output": llm_response,
+        "explanation_path": str(explanation_path),
     }
 
 
-app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
