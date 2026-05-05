@@ -1,0 +1,51 @@
+**Resumen del riesgo:**
+
+El paciente tiene un riesgo moderado de mortalidad. El modelo predice una probabilidad del 7.27% de mortalidad y clasifica el riesgo como "bajo". Los principales factores de riesgo identificados son la edad del paciente (48.96 años), el valor de la puntuación de APS III (40), la puntuación de la temperatura (0.0), la puntuación de la frecuencia respiratoria (8.0), el valor de la hematocrito (26.3), la puntuación de la creatinina (0.0), la puntuación de la urea (7.0), la puntuación de sodio (0.0), la puntuación de glucosa (0.0), la puntuación de GCS (0.0), la puntuación de la frecuencia cardíaca (98.0), la puntuación de la presión arterial mínima (58.5), la puntuación de la temperatura máxima (37.8), la puntuación de la frecuencia respiratoria mínima (9.0), la puntuación de hematocrito mínimo (26.3), la puntuación de hematocrito máximo (30.4), la puntuación de leucocitos (10.0), la puntuación de BUN máximo (21.0), la puntuación de sodio mínimo (136.0), la puntuación de glucosa mínima (98.0), la puntuación de la salida de orina (1248.0), la puntuación de GCS (0.0), la puntuación de sepsis3 (1.0).
+
+**Lectura clínica guiada:**
+
+El paciente presenta un riesgo moderado de mortalidad según la guía de actuación en sepsis. Se sospecha sepsis debido a la puntuación de sepsis3 (1.0). Se observa una puntuación de APS III (40), lo que sugiere una posible hipoperfusión. La puntuación de la temperatura (0.0) no proporciona información clara sobre la presencia de fiebre o hipotermia. La puntuación de la frecuencia respiratoria (8.0) es normal. La puntuación de hematocrito (26.3) es normal. La puntuación de la creatinina (0.0) es normal. La puntuación de la urea (7.0) es normal. La puntuación de sodio (0.0) es normal. La puntuación de glucosa (0.0) es normal. La puntuación de GCS (0.0) es normal. La puntuación de la frecuencia cardíaca (98.0) es normal. La puntuación de la presión arterial mínima (58.5) es normal. La puntuación de la temperatura máxima (37.8) es normal. La puntuación de la frecuencia respiratoria mínima (9.0) es normal. La puntuación de hematocrito mínimo (26.3) es normal. La puntuación de hematocrito máximo (30.4) es normal. La puntuación de leucocitos (10.0) es normal. La puntuación de BUN máximo (21.0) es normal. La puntuación de sodio mínimo (136.0) es normal. La puntuación de glucosa mínima (98.0) es normal. La puntuación de la salida de orina (1248.0) es normal. La puntuación de GCS (0.0) es normal.
+
+**Órganos y sistemas probablemente más afectados:**
+
+*   **Hemodinámico:** La puntuación de APS III (40) sugiere una posible hipoperfusión.
+*   **Renal/Metabólico:** La puntuación de la creatinina (0.0) y la puntuación de la urea (7.0) son normales.
+*   **Neurológico:** La puntuación de GCS (0.0) es normal.
+*   **Respiratorio/Inflamatorio:** La puntuación de la temperatura (0.0) no proporciona información clara sobre la presencia de fiebre o hipotermia. La puntuación de la frecuencia respiratoria (8.0) es normal.
+
+**Contexto del fenotipo:**
+
+El paciente se parece a un fenotipo histórico más renal, más frágil o más estable dentro de nuestra cohorte.
+
+**Prioridades de actuación:**
+
+*   Cultivos y muestras: Se deben realizar cultivos y muestras para identificar la causa de la sepsis.
+*   Lactato y reevaluación: Se debe medir el lactato y reevaluar al paciente para determinar si hay hipoperfusión.
+*   Antibióticos precoces: Se deben administrar antibióticos precoces según las guías de actuación en sepsis.
+*   Fluidoterapia: Se debe administrar fluidoterapia para mejorar la perfusión.
+*   Vasopresores si no alcanza PAM objetivo: Se deben usar vasopresores si el paciente no alcanza el objetivo de presión arterial.
+*   Control del foco: Se debe controlar el foco de la infección.
+*   Escalada asistencial: Se debe escalar la asistencia según la gravedad del paciente.
+
+**Nota de seguridad:**
+
+La recomendación apoya la decisión clínica y no la reemplaza.
+
+**Frases preferidas:**
+
+*   "El patrón es compatible con..."
+*   "Según la guía de actuación en sepsis..."
+*   "La principal preocupación en este caso es..."
+*   "Los resultados del modelo y la clínica sugieren..."
+*   "Debe priorizarse..."
+
+**Frases a evitar:**
+
+*   "El paciente tiene con certeza..."
+*   "El algoritmo demuestra que..."
+*   "Este antibiótico concreto es obligatorio..."
+*   "El cluster por sí solo confirma el diagnóstico..."
+
+**Contexto adicional desde la base de datos:**
+
+No se encontró una fila histórica coincidente en el CSV de contexto.
