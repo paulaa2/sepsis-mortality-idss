@@ -150,6 +150,10 @@ def append_frontend_metadata(
         "Usa estos datos solo como apoyo contextual. "
         "Si contradicen al CSV estructurado, prioriza el CSV.\n\n"
         f"{frontend_json}\n"
+        "\nRECORDATORIO FINAL DE FORMATO\n"
+        "=============================\n"
+        "Devuelve solo el informe final para el medico. Maximo 180 palabras. "
+        "No incluyas frases preferidas, frases a evitar ni notas de mantenimiento.\n"
     )
 
 

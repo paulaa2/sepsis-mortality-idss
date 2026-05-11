@@ -1,6 +1,26 @@
-.venv
-bbdd
-__pycache__
-resultados_outliers
-KnowledgeSources
-SubmissionPackage
+# Entornos y cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Carpetas antiguas o locales
+bbdd/
+resultados_outliers/
+
+# Runtime de la interfaz web / LLM
+Web/__pycache__/
+Web/runtime/
+outputs/web_uploads/
+outputs/ollama_responses/
+outputs/gemini_prompts/
+
+# Archivos temporales de usuario
+*.tmp
+*.log
+~$*
+
+# Paquete final generado localmente
+SubmissionPackage/

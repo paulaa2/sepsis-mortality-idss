@@ -31,6 +31,18 @@ DEFAULT_DATABASE_PATH = (
 )
 DEFAULT_OUTPUT_PATH = REPO_ROOT / "outputs" / "ollama_responses" / "new_patient_explanation.txt"
 DEFAULT_MODEL = "medgemma:4b"
+FINAL_OUTPUT_CONTRACT = """
+
+INSTRUCCION FINAL DE SALIDA
+===========================
+Devuelve solo el informe clinico final. No expliques el prompt, no incluyas
+frases preferidas, frases a evitar, notas de mantenimiento ni resumenes largos.
+Maximo 180 palabras. Usa exactamente estos cuatro encabezados:
+RIESGO:
+LECTURA CLINICA:
+CONDUCTA RECOMENDADA:
+VIGILAR / COMPLETAR:
+"""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -160,6 +172,7 @@ def build_augmented_prompt(
             "CONTEXTO ADICIONAL DESDE LA BASE DE DATOS\n"
             "=========================================\n"
             "No se encontro una fila historica coincidente en el CSV de contexto.\n"
+            f"{FINAL_OUTPUT_CONTRACT}\n"
         )
 
     db_context_json = json.dumps(matched_rows, ensure_ascii=False, indent=2)
@@ -170,6 +183,7 @@ def build_augmented_prompt(
         "Usa esta informacion historica solo como apoyo interpretativo adicional.\n"
         "No sustituyas el contexto principal del caso por esta fila.\n\n"
         f"{db_context_json}\n"
+        f"{FINAL_OUTPUT_CONTRACT}\n"
     )
 
 
