@@ -28,10 +28,19 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, RobustScaler
 
 
-DEFAULT_INPUT = Path("bbdd") / "BaseDatos_imputada_knn.csv"
-DEFAULT_OUTPUT = Path("outputs") / "xgboost_explainability"
+def find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in [current.parent, *current.parents]:
+        if (parent / "requirements.txt").exists():
+            return parent
+    return current.parent
+
+
+REPO_ROOT = find_repo_root()
+DEFAULT_INPUT = REPO_ROOT / "Data" / "Processed" / "BaseDatos_imputada_knn.csv"
+DEFAULT_OUTPUT = REPO_ROOT / "outputs" / "xgboost_explainability"
 DEFAULT_CLUSTERING_ASSIGNMENTS = (
-    Path("outputs") / "clustering_clinical" / "best_patient_assignments.csv"
+    REPO_ROOT / "outputs" / "clustering_clinical" / "best_patient_assignments.csv"
 )
 DEFAULT_CATEGORICAL_COLUMNS = [
     "gender",

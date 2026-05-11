@@ -9,9 +9,18 @@ import pandas as pd
 from scipy.stats import chi2_contingency, kruskal
 
 
-DEFAULT_CLUSTERING_DIR = Path("outputs") / "clustering_clinical"
-DEFAULT_XGB_DIR = Path("outputs") / "xgboost_explainability"
-DEFAULT_DATA_PATH = Path("bbdd") / "BaseDatos_imputada_knn.csv"
+def find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in [current.parent, *current.parents]:
+        if (parent / "requirements.txt").exists():
+            return parent
+    return current.parent
+
+
+REPO_ROOT = find_repo_root()
+DEFAULT_CLUSTERING_DIR = REPO_ROOT / "outputs" / "clustering_clinical"
+DEFAULT_XGB_DIR = REPO_ROOT / "outputs" / "xgboost_explainability"
+DEFAULT_DATA_PATH = REPO_ROOT / "Data" / "Processed" / "BaseDatos_imputada_knn.csv"
 DEFAULT_CATEGORICAL_COLUMNS = [
     "gender",
     "ethnicity",
@@ -35,14 +44,38 @@ DEFAULT_INVERT_VARS = {
     "urineoutput",
     "mbp_min",
 }
-CV_LOW_UNCERTAINTY = 0.15
-CV_HIGH_UNCERTAINTY = 0.50
+HIGHER_WORSE = "higher_worse"
+LOWER_WORSE = "lower_worse"
+TARGET_RANGE = "target_range"
+ATLP_K1 = 0.30
+ATLP_K2 = 0.90
 LOW_THRESH = 33
 HIGH_THRESH = 66
-COLOR_GREEN = np.array([0.18, 0.70, 0.30])
-COLOR_YELLOW = np.array([0.95, 0.78, 0.10])
-COLOR_RED = np.array([0.85, 0.20, 0.15])
-COLOR_GRAY = np.array([0.78, 0.78, 0.78])
+
+
+def rgb255(red: int, green: int, blue: int) -> np.ndarray:
+    return np.array([red, green, blue], dtype=float) / 255.0
+
+
+ATLP_COLORS = {
+    # Gibert & Conti aTLP discrete scale: tone = prototype trend,
+    # darkening = uncertainty/heterogeneity based on variation coefficient.
+    "green": {
+        "pure": rgb255(0, 255, 0),
+        "mid": rgb255(0, 150, 0),
+        "dark": rgb255(0, 90, 0),
+    },
+    "yellow": {
+        "pure": rgb255(255, 255, 0),
+        "mid": rgb255(240, 188, 0),
+        "dark": rgb255(200, 95, 0),
+    },
+    "red": {
+        "pure": rgb255(255, 0, 0),
+        "mid": rgb255(200, 0, 0),
+        "dark": rgb255(100, 0, 0),
+    },
+}
 
 RENAL_FEATURES = {
     "creatinine_max",
@@ -75,6 +108,53 @@ INFLAMMATORY_FEATURES = {
 }
 HEMODYNAMIC_FEATURES = {"mbp_score", "mbp_min", "mbp_max"}
 SEVERITY_FEATURES = {"apsiii", "apsiii_prob", "sepsis3", "admission_age"}
+SCORE_FEATURES = {
+    "apsiii",
+    "apsiii_prob",
+    "hr_score",
+    "mbp_score",
+    "temp_score",
+    "resp_rate_score",
+    "hematocrit_score",
+    "wbc_score",
+    "creatinine_score",
+    "uo_score",
+    "bun_score",
+    "sodium_score",
+    "glucose_score",
+    "gcs_score",
+}
+CLINICAL_TLP_RULES = {
+    # rule, green boundary/bounds, red boundary/bounds.
+    # higher_worse: value <= green_max is green; value >= red_min is red.
+    # lower_worse: value >= green_min is green; value <= red_max is red.
+    # target_range: inside green range is green; outside red range is red.
+    "admission_age": (HIGHER_WORSE, 65.0, 80.0),
+    "apsiii": (HIGHER_WORSE, 45.0, 70.0),
+    "apsiii_prob": (HIGHER_WORSE, 0.20, 0.40),
+    "sepsis3": (HIGHER_WORSE, 0.25, 0.75),
+    "heart_rate_max": (HIGHER_WORSE, 100.0, 120.0),
+    "heart_rate_min": (TARGET_RANGE, (50.0, 100.0), (40.0, 120.0)),
+    "mbp_min": (LOWER_WORSE, 65.0, 55.0),
+    "mbp_max": (TARGET_RANGE, (65.0, 120.0), (55.0, 140.0)),
+    "temperature_max": (HIGHER_WORSE, 38.3, 39.5),
+    "temperature_min": (TARGET_RANGE, (36.0, 38.0), (35.0, 39.0)),
+    "resp_rate_max": (HIGHER_WORSE, 22.0, 30.0),
+    "resp_rate_min": (TARGET_RANGE, (12.0, 22.0), (8.0, 30.0)),
+    "creatinine_max": (HIGHER_WORSE, 1.3, 2.0),
+    "creatinine_min": (HIGHER_WORSE, 1.3, 2.0),
+    "bun_max": (HIGHER_WORSE, 25.0, 50.0),
+    "bun_min": (HIGHER_WORSE, 25.0, 50.0),
+    "sodium_min": (LOWER_WORSE, 135.0, 130.0),
+    "sodium_max": (TARGET_RANGE, (135.0, 145.0), (130.0, 150.0)),
+    "glucose_max": (HIGHER_WORSE, 180.0, 250.0),
+    "glucose_min": (LOWER_WORSE, 70.0, 50.0),
+    "urineoutput": (LOWER_WORSE, 1000.0, 500.0),
+    "gcs_eyes": (LOWER_WORSE, 4.0, 2.0),
+    "gcs_verbal": (LOWER_WORSE, 5.0, 3.0),
+    "gcs_motor": (LOWER_WORSE, 6.0, 4.0),
+    "gcs_unable": (HIGHER_WORSE, 0.10, 0.30),
+}
 
 
 @dataclass
@@ -114,6 +194,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-atlp-vars", type=int, default=18)
     parser.add_argument("--low-thresh", type=float, default=LOW_THRESH)
     parser.add_argument("--high-thresh", type=float, default=HIGH_THRESH)
+    parser.add_argument(
+        "--atlp-k1",
+        type=float,
+        default=ATLP_K1,
+        help=(
+            "Primer punto de corte del coeficiente de variacion para el aTLP. "
+            "VC <= k1 usa color puro."
+        ),
+    )
+    parser.add_argument(
+        "--atlp-k2",
+        type=float,
+        default=ATLP_K2,
+        help=(
+            "Segundo punto de corte del coeficiente de variacion para el aTLP. "
+            "VC >= k2 usa oscurecimiento fuerte."
+        ),
+    )
     parser.add_argument("--skip-plots", action="store_true")
     return parser
 
@@ -512,28 +610,99 @@ def get_tlp_color_label(value: float, p_low: float, p_high: float, invert: bool)
     return "yellow"
 
 
-def compute_numeric_uncertainty(series: pd.Series) -> float:
+def color_from_higher_worse(value: float, green_max: float, red_min: float) -> str:
+    if pd.isna(value):
+        return "yellow"
+    if value <= green_max:
+        return "green"
+    if value >= red_min:
+        return "red"
+    return "yellow"
+
+
+def color_from_lower_worse(value: float, green_min: float, red_max: float) -> str:
+    if pd.isna(value):
+        return "yellow"
+    if value >= green_min:
+        return "green"
+    if value <= red_max:
+        return "red"
+    return "yellow"
+
+
+def color_from_target_range(
+    value: float,
+    green_range: tuple[float, float],
+    red_range: tuple[float, float],
+) -> str:
+    if pd.isna(value):
+        return "yellow"
+    green_min, green_max = green_range
+    red_min, red_max = red_range
+    if green_min <= value <= green_max:
+        return "green"
+    if value < red_min or value > red_max:
+        return "red"
+    return "yellow"
+
+
+def get_clinical_tlp_color(
+    variable: str,
+    value: float,
+    p_low: float,
+    p_high: float,
+    invert: bool,
+) -> tuple[str, str, str]:
+    rule = CLINICAL_TLP_RULES.get(variable)
+    if rule is not None:
+        direction = str(rule[0])
+        if direction == HIGHER_WORSE:
+            return (
+                color_from_higher_worse(value, float(rule[1]), float(rule[2])),
+                direction,
+                "clinical_threshold",
+            )
+        if direction == LOWER_WORSE:
+            return (
+                color_from_lower_worse(value, float(rule[1]), float(rule[2])),
+                direction,
+                "clinical_threshold",
+            )
+        if direction == TARGET_RANGE:
+            return (
+                color_from_target_range(value, rule[1], rule[2]),
+                direction,
+                "clinical_threshold",
+            )
+
+    if variable in SCORE_FEATURES or variable.endswith("_score"):
+        return (
+            get_tlp_color_label(value, p_low, p_high, invert=False),
+            HIGHER_WORSE,
+            "percentile_score_fallback",
+        )
+
+    return (
+        get_tlp_color_label(value, p_low, p_high, invert=invert),
+        LOWER_WORSE if invert else HIGHER_WORSE,
+        "percentile_fallback",
+    )
+
+
+def compute_variation_coefficient(series: pd.Series) -> float:
     series = pd.to_numeric(series, errors="coerce").dropna()
     if series.empty:
         return 1.0
     mean = float(series.mean())
     std = float(series.std())
-    median = float(series.median())
-    q1, q3 = series.quantile([0.25, 0.75])
-    iqr = float(q3 - q1)
-    unique_count = int(series.nunique())
+    if not np.isfinite(std):
+        return 1.0
 
-    cv = abs(std / mean) if abs(mean) >= 1e-9 else 1.0
-    robust_dispersion = iqr / (abs(median) + 1e-9) if abs(median) >= 1e-9 else cv
-
-    if unique_count <= 20:
-        span = float(series.max() - series.min())
-        bounded_dispersion = iqr / span if span > 1e-9 else 0.0
-        uncertainty = 0.4 * np.clip(cv, 0.0, 1.0) + 0.35 * np.clip(robust_dispersion, 0.0, 1.0) + 0.25 * np.clip(bounded_dispersion, 0.0, 1.0)
-    else:
-        uncertainty = min(np.clip(cv, 0.0, 1.0), np.clip(robust_dispersion, 0.0, 1.0))
-
-    return float(np.clip(uncertainty, 0.0, 1.0))
+    denominator = abs(mean)
+    if denominator < 1e-9:
+        median = abs(float(series.median()))
+        denominator = median if median >= 1e-9 else 1e-9
+    return float(abs(std / denominator))
 
 
 def compute_binary_uncertainty(series: pd.Series) -> float:
@@ -550,25 +719,56 @@ def compute_normalized_entropy(series: pd.Series) -> float:
     return float(entropy / max_entropy) if max_entropy > 0 else 0.0
 
 
-def uncertainty_to_confidence(uncertainty: float) -> str:
-    if uncertainty < CV_LOW_UNCERTAINTY:
+def uncertainty_to_confidence(uncertainty: float, k1: float = ATLP_K1, k2: float = ATLP_K2) -> str:
+    if uncertainty <= k1:
         return "high"
-    if uncertainty > CV_HIGH_UNCERTAINTY:
+    if uncertainty >= k2:
         return "low"
     return "medium"
 
 
-def color_label_to_rgb(label: str) -> np.ndarray:
-    return {
-        "green": COLOR_GREEN,
-        "yellow": COLOR_YELLOW,
-        "red": COLOR_RED,
-    }.get(label, COLOR_YELLOW)
+def uncertainty_to_darkening_level(
+    uncertainty: float,
+    k1: float = ATLP_K1,
+    k2: float = ATLP_K2,
+) -> str:
+    if pd.isna(uncertainty):
+        return "dark"
+    if uncertainty <= k1:
+        return "pure"
+    if uncertainty < k2:
+        return "mid"
+    return "dark"
 
 
-def blend_with_gray(base_color: np.ndarray, uncertainty: float) -> np.ndarray:
-    saturation = 1.0 - np.clip(float(uncertainty), 0.0, 1.0) * 0.85
-    return base_color * saturation + COLOR_GRAY * (1.0 - saturation)
+def color_label_to_rgb(
+    label: str,
+    darkening: str = "pure",
+) -> np.ndarray:
+    return ATLP_COLORS.get(label, ATLP_COLORS["yellow"]).get(
+        darkening,
+        ATLP_COLORS["yellow"]["pure"],
+    )
+
+
+def rgb_to_hex(rgb: np.ndarray) -> str:
+    values = np.clip(np.round(rgb * 255), 0, 255).astype(int)
+    return f"#{values[0]:02x}{values[1]:02x}{values[2]:02x}"
+
+
+def hex_to_rgb(hex_color: str) -> np.ndarray:
+    value = str(hex_color).lstrip("#")
+    if len(value) != 6:
+        return ATLP_COLORS["yellow"]["pure"]
+    return np.array(
+        [int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16)],
+        dtype=float,
+    ) / 255.0
+
+
+def readable_text_color(rgb: np.ndarray) -> str:
+    luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+    return "black" if luminance >= 0.45 else "white"
 
 
 def build_atlp_summary(
@@ -578,6 +778,8 @@ def build_atlp_summary(
     invert_vars: set[str],
     low_thresh: float,
     high_thresh: float,
+    atlp_k1: float,
+    atlp_k2: float,
 ) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     labels = cluster_summary[["cluster", "cluster_label", "severity_rank"]].copy()
@@ -617,13 +819,17 @@ def build_atlp_summary(
             series = pd.to_numeric(subset[variable], errors="coerce").dropna()
             prototype = float(series.median()) if not series.empty else np.nan
             stats = global_stats[variable]
-            uncertainty = compute_numeric_uncertainty(series) if not series.empty else 1.0
-            color = get_tlp_color_label(
+            uncertainty = compute_variation_coefficient(series) if not series.empty else 1.0
+            color, polarity, color_basis = get_clinical_tlp_color(
+                variable=variable,
                 value=prototype,
                 p_low=stats["p_low"],
                 p_high=stats["p_high"],
                 invert=variable in invert_vars,
             )
+            darkening = uncertainty_to_darkening_level(uncertainty, atlp_k1, atlp_k2)
+            tlp_rgb = color_label_to_rgb(color, "pure")
+            rgb = color_label_to_rgb(color, darkening)
             std = stats["std"] if not pd.isna(stats["std"]) else np.nan
             z_score = (prototype - stats["mean"]) / std if std and not pd.isna(std) else np.nan
             rows.append(
@@ -638,8 +844,13 @@ def build_atlp_summary(
                     "delta_vs_global": prototype - stats["median"] if not pd.isna(prototype) else np.nan,
                     "z_score_vs_global": z_score,
                     "tlp_color": color,
+                    "tlp_polarity": polarity,
+                    "tlp_color_basis": color_basis,
+                    "tlp_color_hex": rgb_to_hex(tlp_rgb),
+                    "atlp_darkening": darkening,
+                    "atlp_color_hex": rgb_to_hex(rgb),
                     "uncertainty": uncertainty,
-                    "confidence": uncertainty_to_confidence(uncertainty),
+                    "confidence": uncertainty_to_confidence(uncertainty, atlp_k1, atlp_k2),
                 }
             )
 
@@ -648,12 +859,16 @@ def build_atlp_summary(
             prototype = float(series.mean()) if not series.empty else np.nan
             stats = global_stats[variable]
             uncertainty = compute_binary_uncertainty(series) if not series.empty else 1.0
-            color = get_tlp_color_label(
+            color, polarity, color_basis = get_clinical_tlp_color(
+                variable=variable,
                 value=prototype,
                 p_low=stats["p_low"],
                 p_high=stats["p_high"],
                 invert=variable in invert_vars,
             )
+            darkening = uncertainty_to_darkening_level(uncertainty, atlp_k1, atlp_k2)
+            tlp_rgb = color_label_to_rgb(color, "pure")
+            rgb = color_label_to_rgb(color, darkening)
             rows.append(
                 {
                     "cluster": cluster_row.cluster,
@@ -666,8 +881,13 @@ def build_atlp_summary(
                     "delta_vs_global": prototype - stats["mean"] if not pd.isna(prototype) else np.nan,
                     "z_score_vs_global": np.nan,
                     "tlp_color": color,
+                    "tlp_polarity": polarity,
+                    "tlp_color_basis": color_basis,
+                    "tlp_color_hex": rgb_to_hex(tlp_rgb),
+                    "atlp_darkening": darkening,
+                    "atlp_color_hex": rgb_to_hex(rgb),
                     "uncertainty": uncertainty,
-                    "confidence": uncertainty_to_confidence(uncertainty),
+                    "confidence": uncertainty_to_confidence(uncertainty, atlp_k1, atlp_k2),
                 }
             )
 
@@ -679,6 +899,8 @@ def build_atlp_summary(
             uncertainty = compute_normalized_entropy(series)
             global_mode = global_stats[variable]["global_mode"]
             global_share = global_stats[variable]["global_mode_share"]
+            darkening = uncertainty_to_darkening_level(uncertainty, atlp_k1, atlp_k2)
+            rgb = color_label_to_rgb("yellow", darkening)
             rows.append(
                 {
                     "cluster": cluster_row.cluster,
@@ -691,8 +913,13 @@ def build_atlp_summary(
                     "delta_vs_global": dominant_share - global_share if pd.notna(dominant_share) and pd.notna(global_share) else np.nan,
                     "z_score_vs_global": np.nan,
                     "tlp_color": "yellow",
+                    "tlp_polarity": "categorical_context",
+                    "tlp_color_basis": "mode_entropy",
+                    "tlp_color_hex": rgb_to_hex(color_label_to_rgb("yellow", "pure")),
+                    "atlp_darkening": darkening,
+                    "atlp_color_hex": rgb_to_hex(rgb),
                     "uncertainty": uncertainty,
-                    "confidence": uncertainty_to_confidence(uncertainty),
+                    "confidence": uncertainty_to_confidence(uncertainty, atlp_k1, atlp_k2),
                 }
             )
 
@@ -791,7 +1018,10 @@ def build_categorical_association_table(clustered_df: pd.DataFrame, variables: l
     ).reset_index(drop=True)
 
 
-def pivot_atlp_numeric(atlp_summary: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def pivot_atlp_numeric(
+    atlp_summary: pd.DataFrame,
+    hex_column: str = "atlp_color_hex",
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     numeric_df = atlp_summary[atlp_summary["variable_type"].isin(["numeric", "binary"])].copy()
     order = (
         numeric_df[["cluster_label", "severity_rank"]]
@@ -800,17 +1030,32 @@ def pivot_atlp_numeric(atlp_summary: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
         .tolist()
     )
     color_pivot = numeric_df.pivot(index="cluster_label", columns="variable", values="tlp_color")
+    hex_pivot = numeric_df.pivot(index="cluster_label", columns="variable", values=hex_column)
     prototype_pivot = numeric_df.pivot(index="cluster_label", columns="variable", values="prototype")
     uncertainty_pivot = numeric_df.pivot(index="cluster_label", columns="variable", values="uncertainty")
-    return color_pivot.reindex(order), prototype_pivot.reindex(order), uncertainty_pivot.reindex(order)
+    return (
+        color_pivot.reindex(order),
+        hex_pivot.reindex(order),
+        prototype_pivot.reindex(order),
+        uncertainty_pivot.reindex(order),
+    )
 
 
-def plot_atlp_panel(atlp_summary: pd.DataFrame, output_path: Path) -> None:
+def plot_tlp_like_panel(
+    atlp_summary: pd.DataFrame,
+    output_path: Path,
+    title: str,
+    hex_column: str,
+    include_darkening_legend: bool,
+) -> None:
     import matplotlib
     from matplotlib import pyplot as plt
 
     matplotlib.use("Agg")
-    color_pivot, prototype_pivot, uncertainty_pivot = pivot_atlp_numeric(atlp_summary)
+    color_pivot, hex_pivot, prototype_pivot, uncertainty_pivot = pivot_atlp_numeric(
+        atlp_summary,
+        hex_column=hex_column,
+    )
     if color_pivot.empty:
         return
 
@@ -819,9 +1064,7 @@ def plot_atlp_panel(atlp_summary: pd.DataFrame, output_path: Path) -> None:
     rgb = np.zeros((rows, cols, 3))
     for i, _ in enumerate(color_pivot.index):
         for j, _ in enumerate(color_pivot.columns):
-            color = color_pivot.iloc[i, j]
-            uncertainty = uncertainty_pivot.iloc[i, j]
-            rgb[i, j, :] = blend_with_gray(color_label_to_rgb(str(color)), float(uncertainty))
+            rgb[i, j, :] = hex_to_rgb(str(hex_pivot.iloc[i, j]))
 
     fig_width = max(12, cols * 0.8)
     fig_height = max(4, rows * 0.9 + 2.5)
@@ -839,14 +1082,22 @@ def plot_atlp_panel(atlp_summary: pd.DataFrame, output_path: Path) -> None:
                 label = f"{float(value):.0f}"
             else:
                 label = f"{float(value):.1f}"
-            ax.text(j, i, label, ha="center", va="center", fontsize=8, color="black")
+            ax.text(
+                j,
+                i,
+                label,
+                ha="center",
+                va="center",
+                fontsize=8,
+                color=readable_text_color(rgb[i, j, :]),
+            )
 
     ax.set_xticks(np.arange(cols))
     ax.set_xticklabels(color_pivot.columns, rotation=45, ha="right", fontsize=9)
     ax.set_yticks(np.arange(rows))
     ax.set_yticklabels(color_pivot.index, fontsize=10)
-    ax.set_title("aTLP Clinical Profiling Panel", fontweight="bold")
-    ax.set_xlabel("Clinical variables")
+    ax.set_title(title, fontweight="bold")
+    ax.set_xlabel("")
     ax.set_ylabel("Clusters")
     ax.set_xticks(np.arange(-0.5, cols, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
@@ -854,22 +1105,48 @@ def plot_atlp_panel(atlp_summary: pd.DataFrame, output_path: Path) -> None:
     ax.tick_params(which="minor", bottom=False, left=False)
 
     legend_handles = [
-        plt.Rectangle((0, 0), 1, 1, color=COLOR_GREEN, label="Green: low or favorable"),
-        plt.Rectangle((0, 0), 1, 1, color=COLOR_YELLOW, label="Yellow: intermediate"),
-        plt.Rectangle((0, 0), 1, 1, color=COLOR_RED, label="Red: high or unfavorable"),
-        plt.Rectangle((0, 0), 1, 1, color=COLOR_GRAY, label="Gray tint: high uncertainty"),
+        plt.Rectangle((0, 0), 1, 1, color=ATLP_COLORS["green"]["pure"], label="Green tone: favorable/low"),
+        plt.Rectangle((0, 0), 1, 1, color=ATLP_COLORS["yellow"]["pure"], label="Yellow tone: intermediate"),
+        plt.Rectangle((0, 0), 1, 1, color=ATLP_COLORS["red"]["pure"], label="Red tone: unfavorable/high"),
     ]
+    if include_darkening_legend:
+        legend_handles.extend(
+            [
+                plt.Rectangle((0, 0), 1, 1, color=ATLP_COLORS["red"]["mid"], label="Medium darkening: moderate VC"),
+                plt.Rectangle((0, 0), 1, 1, color=ATLP_COLORS["red"]["dark"], label="Hard darkening: high VC"),
+            ]
+        )
     ax.legend(
         handles=legend_handles,
         loc="upper center",
-        bbox_to_anchor=(0.5, -0.18),
-        ncol=2,
+        bbox_to_anchor=(0.5, -0.16),
+        ncol=3,
         frameon=False,
         fontsize=9,
     )
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0.08, 1, 1))
     fig.savefig(output_path, dpi=180, bbox_inches="tight")
     plt.close(fig)
+
+
+def plot_tlp_panel(atlp_summary: pd.DataFrame, output_path: Path) -> None:
+    plot_tlp_like_panel(
+        atlp_summary=atlp_summary,
+        output_path=output_path,
+        title="TLP Clinical Profiling Panel",
+        hex_column="tlp_color_hex",
+        include_darkening_legend=False,
+    )
+
+
+def plot_atlp_panel(atlp_summary: pd.DataFrame, output_path: Path) -> None:
+    plot_tlp_like_panel(
+        atlp_summary=atlp_summary,
+        output_path=output_path,
+        title="aTLP Clinical Profiling Panel",
+        hex_column="atlp_color_hex",
+        include_darkening_legend=True,
+    )
 
 
 def plot_uncertainty_heatmap(atlp_summary: pd.DataFrame, output_path: Path) -> None:
@@ -878,7 +1155,7 @@ def plot_uncertainty_heatmap(atlp_summary: pd.DataFrame, output_path: Path) -> N
     from matplotlib import pyplot as plt
 
     matplotlib.use("Agg")
-    _, _, uncertainty_pivot = pivot_atlp_numeric(atlp_summary)
+    _, _, _, uncertainty_pivot = pivot_atlp_numeric(atlp_summary)
     if uncertainty_pivot.empty:
         return
 
@@ -1046,6 +1323,8 @@ def main() -> None:
         invert_vars=set(args.invert_vars),
         low_thresh=args.low_thresh,
         high_thresh=args.high_thresh,
+        atlp_k1=args.atlp_k1,
+        atlp_k2=args.atlp_k2,
     )
     atlp_summary.to_csv(output_dir / "atlp_summary.csv", index=False)
 
@@ -1079,6 +1358,7 @@ def main() -> None:
     if not args.skip_plots:
         log("Generando figuras...")
         try:
+            plot_tlp_panel(atlp_summary, output_dir / "tlp_panel.png")
             plot_atlp_panel(atlp_summary, output_dir / "atlp_panel.png")
             plot_uncertainty_heatmap(atlp_summary, output_dir / "atlp_uncertainty_heatmap.png")
         except ModuleNotFoundError as exc:
@@ -1094,6 +1374,7 @@ def main() -> None:
         "numeric_association_tests.csv",
         "categorical_association_tests.csv",
         "profiling_validation_report.md",
+        "tlp_panel.png",
         "atlp_panel.png",
         "atlp_uncertainty_heatmap.png",
     ]:

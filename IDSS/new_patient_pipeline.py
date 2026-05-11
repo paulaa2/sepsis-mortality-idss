@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -17,15 +18,28 @@ except ModuleNotFoundError as exc:
         "'python -m pip install joblib' o 'python -m pip install -r requirements.txt'."
     ) from exc
 
+def find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in [current.parent, *current.parents]:
+        if (parent / "requirements.txt").exists():
+            return parent
+    return current.parent
+
+
+REPO_ROOT = find_repo_root()
+TRAINING_SOURCE_DIR = REPO_ROOT / "Source" / "Training"
+if str(TRAINING_SOURCE_DIR) not in sys.path:
+    sys.path.insert(0, str(TRAINING_SOURCE_DIR))
+
 from XGBoost import assign_risk_group, format_top_features, simplify_feature_name
 
 
-DEFAULT_PATIENT_INPUT = Path("new_patient.csv")
-DEFAULT_XGB_DIR = Path("outputs") / "xgboost_explainability"
-DEFAULT_CLUSTERING_DIR = Path("outputs") / "clustering_clinical"
+DEFAULT_PATIENT_INPUT = REPO_ROOT / "IDSS" / "new_patient.csv"
+DEFAULT_XGB_DIR = REPO_ROOT / "outputs" / "xgboost_explainability"
+DEFAULT_CLUSTERING_DIR = REPO_ROOT / "outputs" / "clustering_clinical"
 DEFAULT_CLUSTER_PROFILE = DEFAULT_CLUSTERING_DIR / "profiling" / "cluster_profile_table.csv"
-DEFAULT_KNOWLEDGE_BASE = Path("knowledge_base.txt")
-DEFAULT_OUTPUT_DIR = Path("outputs") / "gemini_prompts"
+DEFAULT_KNOWLEDGE_BASE = REPO_ROOT / "KnowledgeSources" / "knowledge_base.txt"
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs" / "gemini_prompts"
 DEFAULT_NEIGHBORS = 15
 
 

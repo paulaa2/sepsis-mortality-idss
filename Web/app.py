@@ -13,8 +13,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
+IMPORT_DIRS = [
+    BASE_DIR / "IDSS",
+    BASE_DIR / "Source" / "LLM",
+]
+for import_dir in IMPORT_DIRS:
+    if str(import_dir) not in sys.path:
+        sys.path.insert(0, str(import_dir))
 
 from new_patient_pipeline import (
     DEFAULT_CLUSTER_PROFILE,
@@ -73,10 +78,10 @@ def ensure_supported_sklearn_version() -> None:
 
 
 def build_case_context_from_csv(patient_input_path: Path) -> tuple[dict, str]:
-    xgb_dir = BASE_DIR / DEFAULT_XGB_DIR
-    clustering_dir = BASE_DIR / DEFAULT_CLUSTERING_DIR
-    cluster_profile_path = BASE_DIR / DEFAULT_CLUSTER_PROFILE
-    knowledge_base_path = BASE_DIR / DEFAULT_KNOWLEDGE_BASE
+    xgb_dir = Path(DEFAULT_XGB_DIR)
+    clustering_dir = Path(DEFAULT_CLUSTERING_DIR)
+    cluster_profile_path = Path(DEFAULT_CLUSTER_PROFILE)
+    knowledge_base_path = Path(DEFAULT_KNOWLEDGE_BASE)
 
     patient_df = load_single_patient(patient_input_path)
     patient_row = patient_df.iloc[0]
@@ -195,7 +200,7 @@ async def analizar_paciente(
     try:
         case_context, base_prompt = build_case_context_from_csv(uploaded_csv_path)
 
-        database_path = BASE_DIR / DEFAULT_DATABASE_PATH
+        database_path = Path(DEFAULT_DATABASE_PATH)
         matched_rows = []
         if database_path.exists():
             database_df = load_csv(database_path)

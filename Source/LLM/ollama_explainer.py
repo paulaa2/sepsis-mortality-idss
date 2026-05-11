@@ -16,9 +16,20 @@ except ModuleNotFoundError as exc:
     ) from exc
 
 
-DEFAULT_PROMPT_PATH = Path("outputs") / "gemini_prompts" / "new_patient_prompt.txt"
-DEFAULT_DATABASE_PATH = Path("outputs") / "xgboost_explainability" / "llm_ready_patient_context.csv"
-DEFAULT_OUTPUT_PATH = Path("outputs") / "ollama_responses" / "new_patient_explanation.txt"
+def find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in [current.parent, *current.parents]:
+        if (parent / "requirements.txt").exists():
+            return parent
+    return current.parent
+
+
+REPO_ROOT = find_repo_root()
+DEFAULT_PROMPT_PATH = REPO_ROOT / "outputs" / "gemini_prompts" / "new_patient_prompt.txt"
+DEFAULT_DATABASE_PATH = (
+    REPO_ROOT / "outputs" / "xgboost_explainability" / "llm_ready_patient_context.csv"
+)
+DEFAULT_OUTPUT_PATH = REPO_ROOT / "outputs" / "ollama_responses" / "new_patient_explanation.txt"
 DEFAULT_MODEL = "medgemma:4b"
 
 

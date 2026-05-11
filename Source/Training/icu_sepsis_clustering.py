@@ -26,8 +26,17 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, RobustScaler, StandardScaler
 
 
-DEFAULT_INPUT = Path("bbdd") / "BaseDatos_imputada_knn.csv"
-DEFAULT_OUTPUT = Path("outputs") / "clustering_clinical"
+def find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in [current.parent, *current.parents]:
+        if (parent / "requirements.txt").exists():
+            return parent
+    return current.parent
+
+
+REPO_ROOT = find_repo_root()
+DEFAULT_INPUT = REPO_ROOT / "Data" / "Processed" / "BaseDatos_imputada_knn.csv"
+DEFAULT_OUTPUT = REPO_ROOT / "outputs" / "clustering_clinical"
 DEFAULT_CATEGORICAL_COLUMNS = [
     "gender",
     "ethnicity",

@@ -6,83 +6,83 @@ This report extends the base cluster profiling with an aTLP-style summary.
 
 | Variable | Kruskal H | p-value | eta squared |
 |---|---:|---:|---:|
-| gcs_score | 31012.18 | 0.000e+00 | 0.580 |
-| apsiii | 22940.66 | 0.000e+00 | 0.429 |
-| bun_max | 14922.45 | 0.000e+00 | 0.279 |
-| creatinine_max | 14767.58 | 0.000e+00 | 0.276 |
-| sepsis3 | 5147.16 | 0.000e+00 | 0.096 |
-| glucose_max | 2957.28 | 0.000e+00 | 0.055 |
-| admission_age | 2062.05 | 0.000e+00 | 0.038 |
-| mbp_min | 1622.15 | 0.000e+00 | 0.030 |
-| mbp_max | 1495.96 | 0.000e+00 | 0.028 |
-| sodium_min | 1339.15 | 1.079e-288 | 0.025 |
-| urineoutput | 1319.92 | 1.596e-284 | 0.025 |
-| temperature_max | 1176.13 | 2.387e-253 | 0.022 |
+| gcs_motor | 32327.00 | 0.000e+00 | 0.604 |
+| gcs_score | 18161.65 | 0.000e+00 | 0.339 |
+| glucose_score | 14514.37 | 0.000e+00 | 0.271 |
+| glucose_max | 13056.68 | 0.000e+00 | 0.244 |
+| apsiii | 12919.01 | 0.000e+00 | 0.241 |
+| apsiii_prob | 12919.01 | 0.000e+00 | 0.241 |
+| resp_rate_max | 2963.59 | 0.000e+00 | 0.055 |
+| bun_max | 2117.41 | 0.000e+00 | 0.040 |
+| temperature_max | 1983.70 | 0.000e+00 | 0.037 |
+| creatinine_max | 1693.12 | 0.000e+00 | 0.032 |
+| heart_rate_max | 1583.90 | 0.000e+00 | 0.030 |
+| temp_score | 1466.80 | 0.000e+00 | 0.027 |
 
 ## Most discriminative categorical variables
 
 | Variable | Chi2 | p-value | Cramers V |
 |---|---:|---:|---:|
-| admission_location | 17450.89 | 0.000e+00 | 0.285 |
-| admission_type | 16987.26 | 0.000e+00 | 0.282 |
-| gcs_unable | 2138.94 | 0.000e+00 | 0.200 |
-| ethnicity | 1247.00 | 6.559e-252 | 0.076 |
-| marital_status | 1227.63 | 1.749e-251 | 0.075 |
-| gender | 37.62 | 1.341e-07 | 0.025 |
+| gcs_unable | 27376.84 | 0.000e+00 | 0.715 |
+| ethnicity | 1136.58 | 2.712e-228 | 0.072 |
+| admission_type | 1019.76 | 1.176e-193 | 0.068 |
+| marital_status | 976.74 | 1.067e-197 | 0.067 |
+| gender | 207.73 | 8.173e-44 | 0.062 |
+| admission_location | 799.36 | 6.163e-142 | 0.060 |
 
 ## Cluster-level interpretation
 
-### cluster_0 | renal_metabolic_high_severity
+### cluster_0 | neurologic_inflammatory_high_severity
 
 - Severity rank: 1
-- Size: 7463 patients (13.95%)
-- Snapshot: apsiii=69.38, admission_age=65.15, creatinine_max=3.78, bun_max=57.10, mbp_min=55.34, temperature_max=37.25, urineoutput=1642.52, gcs_score=11.05
-- Top high features: creatinine_max (+1.478), bun_max (+1.452), apsiii (+1.111), glucose_max (+0.940), sepsis3 (+0.405)
-- Top low features: sodium_min (-0.439), mbp_min (-0.353), urineoutput (-0.117), temperature_max (-0.114), admission_age (+0.014)
-- Salient high profile: bun_max (51.00, red, low), creatinine_max (2.90, red, low), apsiii (63.00, red, medium)
-- Salient low profile: urineoutput (1125.72, red, low), sodium_min (135.00, green, high), temperature_max (37.11, yellow, high)
-- Most uncertain cells: gcs_score (U=1.00), urineoutput (U=1.00), creatinine_max (U=0.84)
+- Size: 4861 patients (9.09%)
+- Snapshot: apsiii=89.09, admission_age=67.34, creatinine_max=1.73, bun_max=32.58, mbp_min=55.95, temperature_max=37.47, urineoutput=1603.67, gcs_score=39.95
+- Top high features: gcs_score (+2.764), apsiii_prob (+2.145), apsiii (+1.983), sepsis3 (+0.651), temp_score (+0.390)
+- Top low features: gcs_motor (-2.136), gcs_eyes (-1.717), gcs_verbal (-1.354), mbp_min (-0.309), temperature_min (-0.309)
+- Salient high profile: gcs_score (48.00, red, high), apsiii_prob (0.41, red, medium), apsiii (86.00, red, high)
+- Salient low profile: gcs_motor (1.00, red, medium), glucose_score (0.00, green, low), urineoutput (1365.00, green, medium)
+- Most uncertain cells: temp_score (U=2.27), glucose_score (U=1.45), creatinine_max (U=0.94)
 
-### cluster_4 | neurologic_inflammatory_high_severity
+### cluster_1 | mixed_intermediate
 
 - Severity rank: 2
-- Size: 8521 patients (15.93%)
-- Snapshot: apsiii=59.56, admission_age=67.43, creatinine_max=1.05, bun_max=20.34, mbp_min=59.33, temperature_max=37.54, urineoutput=1709.68, gcs_score=21.52
-- Top high features: gcs_score (+1.258), apsiii (+0.677), mbp_max (+0.596), sepsis3 (+0.354), temperature_max (+0.295)
-- Top low features: bun_max (-0.266), creatinine_max (-0.250), glucose_max (-0.122), mbp_min (-0.063), urineoutput (-0.062)
-- Salient high profile: gcs_score (15.00, red, low), apsiii (56.00, red, medium), admission_age (69.42, yellow, medium)
-- Salient low profile: bun_max (18.00, yellow, medium), creatinine_max (0.90, yellow, medium), urineoutput (1525.00, yellow, low)
-- Most uncertain cells: gcs_score (U=0.81), sepsis3 (U=0.76), urineoutput (U=0.59)
+- Size: 2800 patients (5.23%)
+- Snapshot: apsiii=44.44, admission_age=65.02, creatinine_max=1.45, bun_max=24.19, mbp_min=54.89, temperature_max=37.27, urineoutput=1704.68, gcs_score=0.27
+- Top high features: temp_score (+0.560), mbp_score (+0.329), glucose_score (+0.262), wbc_max (+0.242), uo_score (+0.207)
+- Top low features: gcs_motor (-2.348), gcs_eyes (-1.873), gcs_verbal (-1.859), temperature_min (-0.497), gcs_score (-0.479)
+- Salient high profile: admission_age (66.72, yellow, high), sodium_min (137.00, green, high), glucose_max (182.00, yellow, medium)
+- Salient low profile: gcs_motor (1.00, red, medium), glucose_score (0.00, green, low), gcs_score (0.00, green, low)
+- Most uncertain cells: gcs_score (U=5.87), temp_score (U=2.07), glucose_score (U=1.37)
 
-### cluster_2 | older_intermediate_moderate_severity
+### cluster_4 | mixed_intermediate
 
 - Severity rank: 3
-- Size: 8883 patients (16.61%)
-- Snapshot: apsiii=46.16, admission_age=68.18, creatinine_max=1.30, bun_max=27.90, mbp_min=58.73, temperature_max=37.43, urineoutput=1780.18, gcs_score=6.07
-- Top high features: admission_age (+0.189), sepsis3 (+0.172), temperature_max (+0.134), bun_max (+0.088), apsiii (+0.084)
-- Top low features: glucose_max (-0.128), mbp_min (-0.107), sodium_min (-0.091), creatinine_max (-0.089), mbp_max (-0.061)
-- Salient high profile: admission_age (71.14, yellow, medium), sodium_min (137.00, yellow, high), apsiii (44.00, yellow, medium)
-- Salient low profile: glucose_max (154.00, yellow, medium), gcs_score (3.00, red, low), resp_rate_max (26.00, yellow, medium)
-- Most uncertain cells: gcs_score (U=1.00), sepsis3 (U=0.94), urineoutput (U=0.64)
+- Size: 4208 patients (7.87%)
+- Snapshot: apsiii=49.32, admission_age=64.14, creatinine_max=1.90, bun_max=36.85, mbp_min=61.01, temperature_max=37.31, urineoutput=2033.76, gcs_score=3.69
+- Top high features: glucose_max (+2.203), glucose_score (+1.534), glucose_min (+1.267), sodium_score (+0.671), bun_max (+0.506)
+- Top low features: sodium_min (-0.555), gcs_score (-0.200), uo_score (-0.068), temp_score (-0.065), mbp_score (-0.057)
+- Salient high profile: glucose_score (5.00, red, high), glucose_max (351.00, red, medium), gcs_motor (6.00, green, high)
+- Salient low profile: gcs_score (0.00, green, low), sodium_min (135.00, green, high), temp_score (0.00, green, low)
+- Most uncertain cells: temp_score (U=3.52), gcs_score (U=1.89), creatinine_max (U=1.03)
 
-### cluster_1 | older_frail_lower_severity
+### cluster_2 | mixed_lower_severity
 
 - Severity rank: 4
-- Size: 4490 patients (8.39%)
-- Snapshot: apsiii=43.14, admission_age=70.85, creatinine_max=1.40, bun_max=30.31, mbp_min=60.04, temperature_max=37.22, urineoutput=1681.96, gcs_score=1.82
-- Top high features: admission_age (+0.343), bun_max (+0.200), sepsis3 (+0.070), heart_rate_min (+0.022), resp_rate_max (+0.020)
-- Top low features: gcs_score (-0.352), mbp_max (-0.189), temperature_max (-0.159), urineoutput (-0.085), glucose_max (-0.071)
-- Salient high profile: admission_age (72.80, yellow, medium), sodium_min (138.00, yellow, high), bun_max (26.00, red, low)
-- Salient low profile: temperature_max (37.11, yellow, high), urineoutput (1450.00, yellow, low), mbp_max (99.00, yellow, medium)
-- Most uncertain cells: sepsis3 (U=0.95), gcs_score (U=0.80), urineoutput (U=0.65)
+- Size: 30666 patients (57.33%)
+- Snapshot: apsiii=39.25, admission_age=66.08, creatinine_max=1.32, bun_max=24.88, mbp_min=60.61, temperature_max=37.24, urineoutput=1738.01, gcs_score=2.39
+- Top high features: resp_rate_score (+0.453), gcs_motor (+0.397), gcs_verbal (+0.359), gcs_eyes (+0.339), resp_rate_max (+0.092)
+- Top low features: gcs_score (-0.305), glucose_max (-0.281), apsiii_prob (-0.249), glucose_score (-0.225), apsiii (-0.221)
+- Salient high profile: gcs_motor (6.00, green, high), sodium_min (138.00, green, high), admission_age (67.74, yellow, high)
+- Salient low profile: glucose_score (0.00, green, low), gcs_score (0.00, green, low), apsiii_prob (0.06, green, low)
+- Most uncertain cells: temp_score (U=3.06), glucose_score (U=2.42), gcs_score (U=1.96)
 
 ### cluster_3 | stable_low_severity
 
 - Severity rank: 5
-- Size: 24136 patients (45.12%)
-- Snapshot: apsiii=30.57, admission_age=61.64, creatinine_max=0.92, bun_max=16.93, mbp_min=62.60, temperature_max=37.27, urineoutput=1877.32, gcs_score=0.00
-- Top high features: mbp_min (+0.173), sodium_min (+0.110), urineoutput (+0.076), heart_rate_min (-0.073), temperature_max (-0.089)
-- Top low features: apsiii (-0.605), gcs_score (-0.501), bun_max (-0.425), creatinine_max (-0.331), sepsis3 (-0.326)
-- Salient high profile: sodium_min (138.00, yellow, high), mbp_min (62.00, yellow, medium), admission_age (63.53, yellow, medium)
-- Salient low profile: apsiii (30.00, green, medium), gcs_score (0.00, green, low), bun_max (16.00, yellow, medium)
-- Most uncertain cells: gcs_score (U=0.75), urineoutput (U=0.58), sepsis3 (U=0.56)
+- Size: 10958 patients (20.48%)
+- Snapshot: apsiii=36.34, admission_age=60.83, creatinine_max=1.48, bun_max=22.64, mbp_min=62.02, temperature_max=37.56, urineoutput=1923.54, gcs_score=4.03
+- Top high features: temperature_max (+0.324), gcs_motor (+0.322), heart_rate_max (+0.219), hr_score (+0.209), heart_rate_min (+0.190)
+- Top low features: resp_rate_score (-1.207), resp_rate_max (-0.433), apsiii (-0.350), apsiii_prob (-0.303), admission_age (-0.236)
+- Salient high profile: gcs_motor (6.00, green, high), sodium_min (138.00, green, high), heart_rate_max (105.00, yellow, high)
+- Salient low profile: glucose_score (0.00, green, low), resp_rate_max (24.00, yellow, high), gcs_score (0.00, green, low)
+- Most uncertain cells: temp_score (U=2.90), glucose_score (U=2.02), gcs_score (U=1.63)

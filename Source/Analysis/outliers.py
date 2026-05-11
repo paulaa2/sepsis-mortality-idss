@@ -23,8 +23,17 @@ import seaborn as sns
 sns.set_theme(style="whitegrid")
 
 
-DATA_PATH = Path("bbdd") / "BaseDatos_imputada_knn.csv"
-OUTPUT_DIR = Path("resultados_outliers")
+def find_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in [current.parent, *current.parents]:
+        if (parent / "requirements.txt").exists():
+            return parent
+    return current.parent
+
+
+REPO_ROOT = find_repo_root()
+DATA_PATH = REPO_ROOT / "Data" / "Processed" / "BaseDatos_imputada_knn.csv"
+OUTPUT_DIR = REPO_ROOT / "outputs" / "outlier_analysis"
 
 VARIABLES_PRIORITARIAS = [
     "admission_age",
