@@ -85,6 +85,29 @@ body {
     font-size: 1.1rem;
 }
 
+.view-switcher {
+    display: inline-flex;
+    gap: 0.4rem;
+    margin-top: 1.4rem;
+    padding: 0.35rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    box-shadow: var(--shadow-sm);
+}
+
+.view-tab {
+    padding: 0.6rem 1rem;
+    color: var(--text-secondary);
+    background: transparent;
+    border-radius: 6px;
+}
+
+.view-tab.is-active {
+    color: #ffffff;
+    background: var(--primary-color);
+}
+
 /* Cards */
 .card {
     background: var(--card-bg);
@@ -144,7 +167,7 @@ label {
     color: var(--text-primary);
 }
 
-input, select {
+input, select, textarea {
     padding: 0.75rem 1rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -155,7 +178,12 @@ input, select {
     transition: all 0.2s ease;
 }
 
-input:focus, select:focus {
+textarea {
+    resize: vertical;
+    min-height: 110px;
+}
+
+input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
@@ -445,6 +473,136 @@ button {
     margin-bottom: 0;
 }
 
+.feedback-panel {
+    display: grid;
+    gap: 0.7rem;
+    padding: 1.2rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+}
+
+.feedback-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.feedback-status {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.history-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.history-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.25rem;
+}
+
+.history-list-panel,
+.history-detail {
+    min-height: 360px;
+}
+
+.history-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.history-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    text-align: left;
+}
+
+.history-item:hover,
+.history-item.is-selected {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.08);
+}
+
+.history-item span,
+.history-item small {
+    display: block;
+}
+
+.history-item small,
+.history-date {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-transform: none;
+}
+
+.history-item em {
+    padding: 0.28rem 0.5rem;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.history-item em.risk-low {
+    background: #10b981;
+}
+
+.history-item em.risk-medium {
+    background: #f59e0b;
+}
+
+.history-item em.risk-high {
+    background: #ef4444;
+}
+
+.history-detail {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+}
+
+.history-detail .clinical-dashboard {
+    margin-top: 1rem;
+}
+
+.history-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.history-meta span {
+    padding: 0.4rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.empty-state {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
 /* Utilidades */
 .hidden {
     display: none !important;
@@ -458,12 +616,19 @@ button {
 
     .patient-strip,
     .metric-grid,
-    .action-chip {
+    .action-chip,
+    .history-layout {
         grid-template-columns: 1fr;
     }
 
     .patient-strip {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .history-header,
+    .feedback-actions {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

@@ -22,11 +22,15 @@
                 <h1>HealthAI <span>Pipeline Analítico</span></h1>
             </div>
             <p>Unificando datos, ciencia y lenguaje para diagnósticos avanzados.</p>
+            <div class="view-switcher" aria-label="Navegación principal">
+                <button type="button" class="view-tab is-active" id="tab-new-patient">Nuevo paciente</button>
+                <button type="button" class="view-tab" id="tab-history">Historial</button>
+            </div>
         </header>
 
         <main class="main-content">
             <!-- Formulario de Entrada -->
-            <section class="card input-section">
+            <section class="card input-section" id="new-patient-panel">
                 <div class="card-header">
                     <h2>Datos del Paciente</h2>
                     <p>Introduce la información clínica base</p>
@@ -111,6 +115,29 @@
                 
                 <div class="form-actions">
                     <button class="btn-secondary" id="btn-reset">Registrar Nuevo Paciente</button>
+                </div>
+            </section>
+
+            <!-- Historial -->
+            <section id="history-section" class="card history-section hidden">
+                <div class="card-header history-header">
+                    <div>
+                        <h2>Historial de Pacientes</h2>
+                        <p>Consulta análisis previos, salida del modelo y comentarios clínicos guardados.</p>
+                    </div>
+                    <button type="button" class="btn-secondary" id="btn-refresh-history">Actualizar</button>
+                </div>
+
+                <div class="history-layout">
+                    <aside class="history-list-panel">
+                        <div id="history-list" class="history-list">
+                            <p class="empty-state">Todavía no hay pacientes guardados.</p>
+                        </div>
+                    </aside>
+
+                    <article id="history-detail" class="history-detail">
+                        <p class="empty-state">Selecciona un paciente del historial para ver el informe generado.</p>
+                    </article>
                 </div>
             </section>
         </main>
