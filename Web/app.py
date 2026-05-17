@@ -16,6 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 IMPORT_DIRS = [
     BASE_DIR / "IDSS",
     BASE_DIR / "Source" / "LLM",
+    BASE_DIR / "Source" / "Extraction",
 ]
 for import_dir in IMPORT_DIRS:
     if str(import_dir) not in sys.path:
@@ -44,12 +45,14 @@ from ollama_explainer import (
     call_ollama,
     find_patient_rows,
 )
+from pdf_to_patient_csv import build_patient_csv_from_pdf
 
 
 WEB_DIR = BASE_DIR / "Web"
 UPLOAD_DIR = BASE_DIR / "outputs" / "web_uploads"
 PROMPT_OUTPUT_DIR = BASE_DIR / "outputs" / "gemini_prompts"
 LLM_OUTPUT_DIR = BASE_DIR / "outputs" / "ollama_responses"
+PDF_TEXT_OUTPUT_DIR = BASE_DIR / "outputs" / "pdf_extraction"
 STATIC_MOUNT = "/static"
 EXPECTED_SKLEARN_VERSION = "1.7.2"
 
@@ -132,6 +135,7 @@ def append_frontend_metadata(
     peso: float,
     genero: str,
     etnia: str,
+    extraction_summary: dict | None = None,
 ) -> str:
     frontend_context = {
         "nombre": nombre,
@@ -143,6 +147,16 @@ def append_frontend_metadata(
         "etnia_formulario": etnia,
     }
     frontend_json = json.dumps(frontend_context, ensure_ascii=False, indent=2)
+    extraction_block = ""
+    if extraction_summary:
+        extraction_json = json.dumps(extraction_summary, ensure_ascii=False, indent=2)
+        extraction_block = (
+            "\n\nRESUMEN DE EXTRACCION DEL INFORME PDF\n"
+            "======================================\n"
+            "El CSV estructurado se ha generado automaticamente a partir del PDF. "
+            "Ten en cuenta los campos detectados y los campos no encontrados en el informe.\n\n"
+            f"{extraction_json}\n"
+        )
     return (
         f"{prompt}\n\n"
         "METADATOS ADICIONALES DEL FORMULARIO WEB\n"
@@ -150,6 +164,7 @@ def append_frontend_metadata(
         "Usa estos datos solo como apoyo contextual. "
         "Si contradicen al CSV estructurado, prioriza el CSV.\n\n"
         f"{frontend_json}\n"
+        f"{extraction_block}"
         "\nRECORDATORIO FINAL DE FORMATO\n"
         "=============================\n"
         "Devuelve solo el informe final para el medico. Maximo 180 palabras. "
@@ -191,18 +206,41 @@ async def analizar_paciente(
 ):
     ensure_supported_sklearn_version()
 
-    if not archivo.filename or not archivo.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Debes subir un archivo CSV valido.")
+    if not archivo.filename:
+        raise HTTPException(status_code=400, detail="Debes subir un archivo CSV o PDF valido.")
+
+    original_filename = archivo.filename.lower()
+    is_csv = original_filename.endswith(".csv")
+    is_pdf = original_filename.endswith(".pdf")
+    if not (is_csv or is_pdf):
+        raise HTTPException(status_code=400, detail="Debes subir un archivo CSV o PDF valido.")
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     request_id = f"patient_{uuid4().hex[:10]}"
-    uploaded_csv_path = UPLOAD_DIR / f"{request_id}.csv"
+    uploaded_input_path = UPLOAD_DIR / f"{request_id}{'.pdf' if is_pdf else '.csv'}"
+    patient_csv_path = UPLOAD_DIR / f"{request_id}.csv"
 
-    csv_bytes = await archivo.read()
-    uploaded_csv_path.write_bytes(csv_bytes)
+    input_bytes = await archivo.read()
+    uploaded_input_path.write_bytes(input_bytes)
+    extraction_summary = None
 
     try:
-        case_context, base_prompt = build_case_context_from_csv(uploaded_csv_path)
+        if is_pdf:
+            extraction_summary = build_patient_csv_from_pdf(
+                pdf_path=uploaded_input_path,
+                output_csv_path=patient_csv_path,
+                template_csv_path=BASE_DIR / "IDSS" / "new_patient.csv",
+                form_context={
+                    "edad": edad,
+                    "genero": genero,
+                    "etnia": etnia,
+                },
+                extracted_text_path=PDF_TEXT_OUTPUT_DIR / f"{request_id}_text.txt",
+            )
+        else:
+            patient_csv_path = uploaded_input_path
+
+        case_context, base_prompt = build_case_context_from_csv(patient_csv_path)
 
         database_path = Path(DEFAULT_DATABASE_PATH)
         matched_rows = []
@@ -227,6 +265,7 @@ async def analizar_paciente(
             peso=peso,
             genero=genero,
             etnia=etnia,
+            extraction_summary=extraction_summary,
         )
         explanation = call_ollama(
             prompt_text=final_prompt,
@@ -255,6 +294,9 @@ async def analizar_paciente(
         "cluster_label": cluster_assignment["cluster_label"],
         "cluster": cluster_assignment["cluster"],
         "explanation": explanation,
+        "input_type": "pdf" if is_pdf else "csv",
+        "generated_csv_path": str(patient_csv_path),
+        "extraction_summary": extraction_summary,
         "prompt_path": str(prompt_path),
         "explanation_path": str(explanation_path),
     }

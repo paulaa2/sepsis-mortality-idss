@@ -13,9 +13,7 @@ resultados_outliers/
 # Runtime de la interfaz web / LLM
 Web/__pycache__/
 Web/runtime/
-outputs/web_uploads/
-outputs/ollama_responses/
-outputs/gemini_prompts/
+outputs
 
 # Archivos temporales de usuario
 *.tmp

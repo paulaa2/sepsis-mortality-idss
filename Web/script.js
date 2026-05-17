@@ -8,7 +8,7 @@ const llmOutput = document.getElementById("llm-output");
 const resetButton = document.getElementById("btn-reset");
 const submitButton = document.getElementById("btn-submit");
 
-const defaultFileMessage = "Arrastra tu archivo CSV aquí o haz clic para buscar";
+const defaultFileMessage = "Arrastra un PDF clinico o un CSV aqui";
 
 const riskConfig = {
   low: {
@@ -93,6 +93,32 @@ function renderResult(data) {
   const config = riskConfig[riskKey];
   const progress = Math.min(100, Math.max(0, probability * 100));
   const plan = treatmentPlan(riskKey);
+  const extraction = data.extraction_summary || null;
+  const extractedFields = extraction?.extracted_fields || [];
+  const missingFields = extraction?.missing_core_fields || [];
+  const sourcePanel =
+    data.input_type === "pdf" && extraction
+      ? `
+  <div class="source-panel">
+    <div>
+      <span class="eyebrow">Entrada</span>
+      <h4>PDF convertido a CSV automaticamente</h4>
+      <p>${extractedFields.length} variables detectadas en el informe. CSV generado para el modelo.</p>
+    </div>
+    <div class="source-tags">
+      ${extractedFields
+        .slice(0, 8)
+        .map((field) => `<span>${escapeHtml(field)}</span>`)
+        .join("")}
+    </div>
+    ${
+      missingFields.length
+        ? `<small>No detectado en el PDF: ${escapeHtml(missingFields.slice(0, 8).join(", "))}${missingFields.length > 8 ? "..." : ""}</small>`
+        : "<small>Variables clinicas principales detectadas.</small>"
+    }
+  </div>
+`
+      : "";
 
   llmOutput.innerHTML = `
 <div class="clinical-dashboard ${config.className}">
@@ -119,6 +145,8 @@ function renderResult(data) {
       <small>Cluster asignado por similitud clínica.</small>
     </article>
   </div>
+
+  ${sourcePanel}
 
   <div class="treatment-panel">
     <h4>Conducta recomendada</h4>
@@ -185,7 +213,7 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!fileInput.files.length) {
-    renderError("Debes adjuntar un archivo CSV del paciente.");
+    renderError("Debes adjuntar un PDF clinico o un CSV del paciente.");
     return;
   }
 

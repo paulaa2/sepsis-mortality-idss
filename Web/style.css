@@ -193,6 +193,14 @@ input:focus, select:focus {
     text-align: center;
 }
 
+.file-hint {
+    max-width: 620px;
+    margin-top: 0.45rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 0.86rem;
+}
+
 .file-input {
     position: absolute;
     left: 0;
@@ -367,12 +375,44 @@ button {
 
 .metric-card,
 .treatment-panel,
-.explanation-panel {
+.explanation-panel,
+.source-panel {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background: #ffffff;
     padding: 1.2rem;
     box-shadow: var(--shadow-sm);
+}
+
+.source-panel {
+    display: grid;
+    gap: 0.75rem;
+    border-left: 6px solid #38bdf8;
+    background: linear-gradient(135deg, #ffffff, #f0f9ff);
+}
+
+.source-panel h4 {
+    margin-top: 0.15rem;
+}
+
+.source-panel p,
+.source-panel small {
+    color: var(--text-secondary);
+}
+
+.source-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.source-tags span {
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.28rem 0.55rem;
 }
 
 .metric-card span,
