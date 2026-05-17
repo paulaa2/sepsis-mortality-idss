@@ -1,0 +1,220 @@
+[
+  {
+    "request_id": "patient_fd30781947",
+    "created_at": "2026-05-12T09:32:49.641727+00:00",
+    "updated_at": "2026-05-12T09:32:49.641727+00:00",
+    "paciente": "Marina Teruel",
+    "formulario": {
+      "nombre": "Marina",
+      "apellido": "Teruel",
+      "edad": 20,
+      "altura": 167,
+      "peso": 55,
+      "genero": "Femenino",
+      "etnia": "Blanca"
+    },
+    "comentario_medico": "",
+    "predicted_probability": 0.07272929698228836,
+    "predicted_risk_group": "low",
+    "cluster_label": "cluster_2",
+    "cluster": 2,
+    "explanation": "皈தி\n```\nRIESGO:\nEl paciente tiene un riesgo bajo de mortalidad según el modelo, con una probabilidad predicha de 7.27% y un cluster de riesgo bajo.\n\nLECTURA CLINICA:\nEl paciente presenta un estado general estable, con un GCS de 2.39, un ritmo respiratorio de 8.0, un hematocrito de 26.3%, un BUN de 24.88, un UO de 1248, y una temperatura de 37.24.\n\nCONDUCTA RECOMENDADA:\nPriorizar cultivos y muestras. Evaluar la función renal y metabólica. Considerar vasopresores si la presión arterial no se mantiene dentro del rango objetivo.\n\nVIGILAR / COMPLETAR:\nMonitorizar la función renal y metabólica. Evaluar la respuesta a la terapia con vasopresores.\n```",
+    "prompt_path": "C:\\Users\\3j03l\\Documents\\GitHub\\sepsis-mortality-idss\\outputs\\gemini_prompts\\patient_fd30781947_prompt.txt",
+    "explanation_path": "C:\\Users\\3j03l\\Documents\\GitHub\\sepsis-mortality-idss\\outputs\\ollama_responses\\patient_fd30781947_explanation.txt",
+    "uploaded_csv_path": "C:\\Users\\3j03l\\Documents\\GitHub\\sepsis-mortality-idss\\outputs\\web_uploads\\patient_fd30781947.csv",
+    "case_context": {
+      "patient_identifiers": {
+        "subject_id": 99999999,
+        "hadm_id": 88888888,
+        "stay_id": 77777777
+      },
+      "model_outputs": {
+        "predicted_probability": 0.07272929698228836,
+        "predicted_risk_group": "low",
+        "top_positive_features": "ethnicity_1 (+0.1890), hematocrit_max (+0.1340), creatinine_max (+0.0822), admission_type_2 (+0.0520), gcs_score (+0.0264)",
+        "top_negative_features": "apsiii (-0.8292), admission_age (-0.4371), gcs_verbal (-0.2148), gcs_motor (-0.2145), resp_rate_min (-0.1707)"
+      },
+      "cluster_assignment": {
+        "cluster": 2,
+        "cluster_label": "cluster_2",
+        "assignment_method": "similarity_to_historical_clustered_patients",
+        "neighbors_used": 15,
+        "neighbor_cluster_vote": [
+          {
+            "cluster": 2,
+            "cluster_label": "cluster_2",
+            "weight": 100000016.46882232
+          }
+        ],
+        "severity_rank": 4
+      },
+      "cluster_profile": {
+        "cluster_label": "cluster_2",
+        "phenotype_name": "mixed_lower_severity",
+        "severity_rank": 4,
+        "top_high_features": "resp_rate_score (+0.453), gcs_motor (+0.397), gcs_verbal (+0.359), gcs_eyes (+0.339), resp_rate_max (+0.092)",
+        "top_low_features": "gcs_score (-0.305), glucose_max (-0.281), apsiii_prob (-0.249), glucose_score (-0.225), apsiii (-0.221)",
+        "clinical_snapshot": "apsiii=39.25, admission_age=66.08, creatinine_max=1.32, bun_max=24.88, mbp_min=60.61, temperature_max=37.24, urineoutput=1738.01, gcs_score=2.39",
+        "xgb_observed_mortality_test": 0.0963718820861678,
+        "xgb_mean_predicted_probability": 0.3336794078350067
+      },
+      "patient_features": {
+        "gender": 0,
+        "admission_age": 48.96601097,
+        "ethnicity": 1,
+        "admission_type": 1,
+        "admission_location": 2,
+        "marital_status": 1,
+        "apsiii": 40,
+        "apsiii_prob": 0.072722638,
+        "hr_score": 0,
+        "mbp_score": 15,
+        "temp_score": 0,
+        "resp_rate_score": 8,
+        "hematocrit_score": 3,
+        "wbc_score": 0,
+        "creatinine_score": 0,
+        "uo_score": 5,
+        "bun_score": 7,
+        "sodium_score": 0,
+        "glucose_score": 0,
+        "gcs_score": 0,
+        "heart_rate_max": 98,
+        "heart_rate_min": 76,
+        "mbp_min": 58.5,
+        "mbp_max": 85,
+        "temperature_min": 36.6,
+        "temperature_max": 37.8,
+        "resp_rate_min": 9,
+        "resp_rate_max": 25,
+        "hematocrit_min": 26.3,
+        "hematocrit_max": 30.4,
+        "wbc_min": 10,
+        "wbc_max": 13.7,
+        "creatinine_min": 0.7,
+        "creatinine_max": 0.7,
+        "bun_min": 19,
+        "bun_max": 21,
+        "sodium_min": 136,
+        "sodium_max": 136,
+        "glucose_min": 98,
+        "glucose_max": 167,
+        "urineoutput": 1248,
+        "gcs_unable": 0,
+        "gcs_eyes": 3,
+        "gcs_verbal": 5,
+        "gcs_motor": 6,
+        "sepsis3": 1
+      }
+    }
+  },
+  {
+    "request_id": "patient_67b6e097b0",
+    "created_at": "2026-05-12T09:38:54.439796+00:00",
+    "updated_at": "2026-05-12T09:40:48.382099+00:00",
+    "paciente": "Joel Blanco",
+    "formulario": {
+      "nombre": "Joel",
+      "apellido": "Blanco",
+      "edad": 20,
+      "altura": 182,
+      "peso": 90,
+      "genero": "Masculino",
+      "etnia": "Blanco"
+    },
+    "comentario_medico": "Como tenía la pierna rota no le di el alta.",
+    "predicted_probability": 0.07272929698228836,
+    "predicted_risk_group": "low",
+    "cluster_label": "cluster_2",
+    "cluster": 2,
+    "explanation": "RIESGO:\nEl paciente presenta un riesgo bajo de mortalidad según el modelo, con una probabilidad predicha de 0.0727. El cluster assignment sugiere un riesgo moderado, con un score de 4.\n\nLECTURA CLINICA:\nEl paciente es un hombre de 20 años, blanco, con un peso de 90 kg y una altura de 182 cm. Se observa un estado mental alterado (GCS 2.39), con un score de 8 en resp_rate_score, 3 en GCS_eyes, 5 en GCS_verbal y 6 en GCS_motor. Se registra una disminución en la presión arterial (MBP 58.5), una temperatura normal (37.24), y una diuresis adecuada (1248 ml).\n\nCONDUCTA RECOMENDADA:\nPriorizar la monitorización de la presión arterial y el estado mental del paciente. Evaluar la necesidad de vasopresores. Considerar la administración de antibióticos según las guías de actuación en sepsis.\n\nVIGILAR / COMPLETAR:\nVigilar la presión arterial y el estado mental del paciente. Evaluar la necesidad de vasopresores.",
+    "prompt_path": "C:\\Users\\3j03l\\Documents\\GitHub\\sepsis-mortality-idss\\outputs\\gemini_prompts\\patient_67b6e097b0_prompt.txt",
+    "explanation_path": "C:\\Users\\3j03l\\Documents\\GitHub\\sepsis-mortality-idss\\outputs\\ollama_responses\\patient_67b6e097b0_explanation.txt",
+    "uploaded_csv_path": "C:\\Users\\3j03l\\Documents\\GitHub\\sepsis-mortality-idss\\outputs\\web_uploads\\patient_67b6e097b0.csv",
+    "case_context": {
+      "patient_identifiers": {
+        "subject_id": 99999999,
+        "hadm_id": 88888888,
+        "stay_id": 77777777
+      },
+      "model_outputs": {
+        "predicted_probability": 0.07272929698228836,
+        "predicted_risk_group": "low",
+        "top_positive_features": "ethnicity_1 (+0.1890), hematocrit_max (+0.1340), creatinine_max (+0.0822), admission_type_2 (+0.0520), gcs_score (+0.0264)",
+        "top_negative_features": "apsiii (-0.8292), admission_age (-0.4371), gcs_verbal (-0.2148), gcs_motor (-0.2145), resp_rate_min (-0.1707)"
+      },
+      "cluster_assignment": {
+        "cluster": 2,
+        "cluster_label": "cluster_2",
+        "assignment_method": "similarity_to_historical_clustered_patients",
+        "neighbors_used": 15,
+        "neighbor_cluster_vote": [
+          {
+            "cluster": 2,
+            "cluster_label": "cluster_2",
+            "weight": 100000016.46882232
+          }
+        ],
+        "severity_rank": 4
+      },
+      "cluster_profile": {
+        "cluster_label": "cluster_2",
+        "phenotype_name": "mixed_lower_severity",
+        "severity_rank": 4,
+        "top_high_features": "resp_rate_score (+0.453), gcs_motor (+0.397), gcs_verbal (+0.359), gcs_eyes (+0.339), resp_rate_max (+0.092)",
+        "top_low_features": "gcs_score (-0.305), glucose_max (-0.281), apsiii_prob (-0.249), glucose_score (-0.225), apsiii (-0.221)",
+        "clinical_snapshot": "apsiii=39.25, admission_age=66.08, creatinine_max=1.32, bun_max=24.88, mbp_min=60.61, temperature_max=37.24, urineoutput=1738.01, gcs_score=2.39",
+        "xgb_observed_mortality_test": 0.0963718820861678,
+        "xgb_mean_predicted_probability": 0.3336794078350067
+      },
+      "patient_features": {
+        "gender": 0,
+        "admission_age": 48.96601097,
+        "ethnicity": 1,
+        "admission_type": 1,
+        "admission_location": 2,
+        "marital_status": 1,
+        "apsiii": 40,
+        "apsiii_prob": 0.072722638,
+        "hr_score": 0,
+        "mbp_score": 15,
+        "temp_score": 0,
+        "resp_rate_score": 8,
+        "hematocrit_score": 3,
+        "wbc_score": 0,
+        "creatinine_score": 0,
+        "uo_score": 5,
+        "bun_score": 7,
+        "sodium_score": 0,
+        "glucose_score": 0,
+        "gcs_score": 0,
+        "heart_rate_max": 98,
+        "heart_rate_min": 76,
+        "mbp_min": 58.5,
+        "mbp_max": 85,
+        "temperature_min": 36.6,
+        "temperature_max": 37.8,
+        "resp_rate_min": 9,
+        "resp_rate_max": 25,
+        "hematocrit_min": 26.3,
+        "hematocrit_max": 30.4,
+        "wbc_min": 10,
+        "wbc_max": 13.7,
+        "creatinine_min": 0.7,
+        "creatinine_max": 0.7,
+        "bun_min": 19,
+        "bun_max": 21,
+        "sodium_min": 136,
+        "sodium_max": 136,
+        "glucose_min": 98,
+        "glucose_max": 167,
+        "urineoutput": 1248,
+        "gcs_unable": 0,
+        "gcs_eyes": 3,
+        "gcs_verbal": 5,
+        "gcs_motor": 6,
+        "sepsis3": 1
+      }
+    }
+  }
+]

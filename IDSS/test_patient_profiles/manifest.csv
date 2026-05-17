@@ -1,0 +1,11 @@
+filename,nombre,apellido,edad,altura,peso,genero,etnia,perfil_objetivo,descripcion
+patient_01_low_stable.csv,Laura,Iglesias,44,168,64,Femenino,Blanca,low,Estable con APSIII bajo y constantes conservadas
+patient_02_low_inflammatory.csv,Pablo,Molina,52,177,82,Masculino,Blanca,low,Inflamatorio leve sin compromiso renal ni neurologico
+patient_03_medium_frail.csv,Mercedes,Vidal,76,159,66,Femenino,Blanca,medium,Fragilidad y severidad intermedia
+patient_04_medium_cardiorespiratory.csv,Daniel,Ramos,63,175,86,Masculino,Blanca,medium,Taquicardia y taquipnea con hipotension limite
+patient_05_medium_renal.csv,Isabel,Cortes,69,162,74,Femenino,Blanca,medium,Componente renal moderado y diuresis reducida
+patient_06_high_shock_like.csv,Javier,Lopez,72,179,88,Masculino,Blanca,high,Perfil compatible con hipoperfusion y deterioro organico
+patient_07_high_neuro.csv,Ana,Beltran,81,157,62,Femenino,Blanca,high,Deterioro neurologico con fiebre y alta severidad
+patient_08_high_renal_metabolic.csv,Manuel,Serrano,67,181,92,Masculino,Blanca,high,Perfil renal-metabolico grave con oliguria
+patient_09_borderline_low_medium.csv,Rosa,Paredes,60,165,71,Femenino,Blanca,low_or_medium,Caso frontera entre bajo y medio
+patient_10_borderline_medium_high.csv,Victor,Gallego,74,174,79,Masculino,Blanca,medium_or_high,Caso frontera entre medio y alto

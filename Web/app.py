@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import traceback
 from uuid import uuid4
 
 import sklearn
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -53,6 +54,7 @@ UPLOAD_DIR = BASE_DIR / "outputs" / "web_uploads"
 PROMPT_OUTPUT_DIR = BASE_DIR / "outputs" / "gemini_prompts"
 LLM_OUTPUT_DIR = BASE_DIR / "outputs" / "ollama_responses"
 PDF_TEXT_OUTPUT_DIR = BASE_DIR / "outputs" / "pdf_extraction"
+HISTORY_PATH = BASE_DIR / "outputs" / "web_patient_history.json"
 STATIC_MOUNT = "/static"
 EXPECTED_SKLEARN_VERSION = "1.7.2"
 
@@ -188,9 +190,88 @@ def persist_outputs(
     return prompt_path, explanation_path
 
 
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def load_history() -> list[dict]:
+    if not HISTORY_PATH.exists():
+        return []
+    try:
+        payload = json.loads(HISTORY_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    if isinstance(payload, list):
+        return payload
+    return []
+
+
+def save_history(history: list[dict]) -> None:
+    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    HISTORY_PATH.write_text(
+        json.dumps(history, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def summarize_history_entry(entry: dict) -> dict:
+    keys = [
+        "request_id",
+        "paciente",
+        "created_at",
+        "updated_at",
+        "predicted_probability",
+        "predicted_risk_group",
+        "cluster_label",
+        "cluster",
+        "comentario_medico",
+    ]
+    return {key: entry.get(key) for key in keys if key in entry}
+
+
+def append_history_entry(entry: dict) -> None:
+    history = load_history()
+    history = [item for item in history if item.get("request_id") != entry["request_id"]]
+    history.append(entry)
+    save_history(history)
+
+
+def find_history_entry(request_id: str) -> tuple[list[dict], dict]:
+    history = load_history()
+    for entry in history:
+        if entry.get("request_id") == request_id:
+            return history, entry
+    raise HTTPException(status_code=404, detail="Paciente historico no encontrado.")
+
+
 @app.get("/")
 async def serve_index() -> FileResponse:
     return FileResponse(WEB_DIR / "index.html")
+
+
+@app.get("/api/historial")
+async def listar_historial():
+    history = load_history()
+    ordered = sorted(history, key=lambda item: item.get("created_at", ""), reverse=True)
+    return {"status": "success", "items": [summarize_history_entry(item) for item in ordered]}
+
+
+@app.get("/api/historial/{request_id}")
+async def obtener_historial(request_id: str):
+    _, entry = find_history_entry(request_id)
+    return {"status": "success", "item": entry}
+
+
+@app.patch("/api/historial/{request_id}/comentario")
+async def actualizar_comentario_historial(
+    request_id: str,
+    comentario: str = Body("", embed=True),
+):
+    history, entry = find_history_entry(request_id)
+    entry["comentario_medico"] = comentario.strip()
+    entry["updated_at"] = utc_now_iso()
+    save_history(history)
+    return {"status": "success", "item": entry}
 
 
 @app.post("/api/analizar")
@@ -284,15 +365,47 @@ async def analizar_paciente(
 
     model_outputs = case_context["model_outputs"]
     cluster_assignment = case_context["cluster_assignment"]
+    created_at = utc_now_iso()
+    history_entry = {
+        "request_id": request_id,
+        "created_at": created_at,
+        "updated_at": created_at,
+        "paciente": f"{nombre} {apellido}",
+        "formulario": {
+            "nombre": nombre,
+            "apellido": apellido,
+            "edad": edad,
+            "altura": altura,
+            "peso": peso,
+            "genero": genero,
+            "etnia": etnia,
+        },
+        "comentario_medico": "",
+        "predicted_probability": model_outputs["predicted_probability"],
+        "predicted_risk_group": model_outputs["predicted_risk_group"],
+        "cluster_label": cluster_assignment["cluster_label"],
+        "cluster": cluster_assignment["cluster"],
+        "explanation": explanation,
+        "prompt_path": str(prompt_path),
+        "explanation_path": str(explanation_path),
+        "input_type": "pdf" if is_pdf else "csv",
+        "uploaded_input_path": str(uploaded_input_path),
+        "generated_csv_path": str(patient_csv_path),
+        "extraction_summary": extraction_summary,
+        "case_context": case_context,
+    }
+    append_history_entry(history_entry)
 
     return {
         "status": "success",
         "paciente": f"{nombre} {apellido}",
         "request_id": request_id,
+        "created_at": created_at,
         "predicted_probability": model_outputs["predicted_probability"],
         "predicted_risk_group": model_outputs["predicted_risk_group"],
         "cluster_label": cluster_assignment["cluster_label"],
         "cluster": cluster_assignment["cluster"],
+        "comentario_medico": "",
         "explanation": explanation,
         "input_type": "pdf" if is_pdf else "csv",
         "generated_csv_path": str(patient_csv_path),
