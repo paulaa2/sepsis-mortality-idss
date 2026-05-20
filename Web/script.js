@@ -382,8 +382,65 @@ fileDropArea.addEventListener("drop", (event) => {
   }
 });
 
+function validateFormFields() {
+  const nombre = document.getElementById("nombre").value.trim();
+  const apellido = document.getElementById("apellido").value.trim();
+  const edad = Number(document.getElementById("edad").value);
+  const altura = Number(document.getElementById("altura").value);
+  const peso = Number(document.getElementById("peso").value);
+  const genero = document.getElementById("genero").value;
+  const etnia = document.getElementById("etnia").value;
+
+  // Validar nombre y apellido: solo letras, espacios y guiones
+  const namePattern = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-]+$/;
+  if (!namePattern.test(nombre)) {
+    renderError("El Nombre contiene caracteres inválidos. Solo se permiten letras, espacios y guiones.");
+    return false;
+  }
+  if (!namePattern.test(apellido)) {
+    renderError("El Apellido contiene caracteres inválidos. Solo se permiten letras, espacios y guiones.");
+    return false;
+  }
+
+  // Validar edad: 18-130 años
+  if (edad < 18 || edad > 130) {
+    renderError("La Edad debe estar entre 18 y 130 años.");
+    return false;
+  }
+
+  // Validar altura: entre 50 y 250 cm
+  if (altura < 50 || altura > 250) {
+    renderError("La Altura debe estar entre 50 y 250 cm.");
+    return false;
+  }
+
+  // Validar peso: entre 30 y 300 kg
+  if (peso < 30 || peso > 300) {
+    renderError("El Peso debe estar entre 30 y 300 kg.");
+    return false;
+  }
+
+  // Validar que se haya seleccionado un género
+  if (!genero || genero === "") {
+    renderError("Debes seleccionar un Género válido.");
+    return false;
+  }
+
+  // Validar que se haya seleccionado una etnia
+  if (!etnia || etnia === "") {
+    renderError("Debes seleccionar una Etnia / Grupo Poblacional válido.");
+    return false;
+  }
+
+  return true;
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  if (!validateFormFields()) {
+    return;
+  }
 
   if (!fileInput.files.length) {
     renderError("Debes adjuntar un PDF clinico o un CSV del paciente.");
