@@ -43,7 +43,7 @@ from ollama_explainer import (
     DEFAULT_DATABASE_PATH,
     DEFAULT_MODEL,
     build_augmented_prompt,
-    call_ollama,
+    call_ollama_validated,
     find_patient_rows,
 )
 from pdf_to_patient_csv import build_patient_csv_from_pdf
@@ -348,11 +348,11 @@ async def analizar_paciente(
             etnia=etnia,
             extraction_summary=extraction_summary,
         )
-        explanation = call_ollama(
+        explanation = call_ollama_validated(
             prompt_text=final_prompt,
             model=DEFAULT_MODEL,
             host=None,
-            temperature=0.2,
+            temperature=0.1,
         )
         prompt_path, explanation_path = persist_outputs(
             request_id=request_id,

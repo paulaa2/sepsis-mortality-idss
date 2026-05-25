@@ -43,6 +43,21 @@ LECTURA CLINICA:
 CONDUCTA RECOMENDADA:
 VIGILAR / COMPLETAR:
 """
+STRICT_LANGUAGE_CONTRACT = """
+
+VALIDACION DE IDIOMA Y FORMATO
+==============================
+Responde exclusivamente en espanol. Usa solo caracteres latinos habituales
+del espanol y no mezcles otros alfabetos. Si tienes dudas, escribe una frase
+breve y conservadora en espanol.
+"""
+REQUIRED_RESPONSE_HEADERS = [
+    "RIESGO:",
+    "LECTURA CLINICA:",
+    "CONDUCTA RECOMENDADA:",
+    "VIGILAR / COMPLETAR:",
+]
+ALLOWED_NON_ASCII = set("áéíóúÁÉÍÓÚñÑüÜçÇàèòÀÈÒ¿¡ºª")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -187,6 +202,82 @@ def build_augmented_prompt(
     )
 
 
+def normalize_for_validation(text: str) -> str:
+    return (
+        text.upper()
+        .replace("CLÍNICA", "CLINICA")
+        .replace("SEGÚN", "SEGUN")
+    )
+
+
+def has_required_headers(text: str) -> bool:
+    normalized = normalize_for_validation(text)
+    return all(header in normalized for header in REQUIRED_RESPONSE_HEADERS)
+
+
+def suspicious_character_ratio(text: str) -> float:
+    if not text:
+        return 1.0
+
+    suspicious = 0
+    checked = 0
+    for char in text:
+        if char.isspace() or char in "\n\r\t":
+            continue
+        checked += 1
+        if ord(char) <= 127 or char in ALLOWED_NON_ASCII:
+            continue
+        suspicious += 1
+
+    if checked == 0:
+        return 1.0
+    return suspicious / checked
+
+
+def looks_like_spanish_clinical_response(text: str) -> bool:
+    normalized = normalize_for_validation(text)
+    spanish_markers = [
+        "PACIENTE",
+        "RIESGO",
+        "CLINICA",
+        "VALORAR",
+        "VIGILAR",
+        "REVISAR",
+        "MORTALIDAD",
+        "FENOTIPO",
+    ]
+    return sum(marker in normalized for marker in spanish_markers) >= 3
+
+
+def is_valid_llm_response(text: str) -> bool:
+    clean = text.strip()
+    if len(clean) < 40:
+        return False
+    if not has_required_headers(clean):
+        return False
+    if suspicious_character_ratio(clean) > 0.03:
+        return False
+    if not looks_like_spanish_clinical_response(clean):
+        return False
+    return True
+
+
+def fallback_llm_response() -> str:
+    return (
+        "RIESGO:\n"
+        "No se ha podido generar una lectura clinica fiable automaticamente.\n\n"
+        "LECTURA CLINICA:\n"
+        "La respuesta del modelo de lenguaje no ha superado la validacion de idioma "
+        "o formato, por lo que debe descartarse.\n\n"
+        "CONDUCTA RECOMENDADA:\n"
+        "- Hacer ahora: revisar manualmente la probabilidad, el grupo de riesgo y el fenotipo.\n"
+        "- Valorar segun clinica: completar datos criticos del paciente.\n"
+        "- No indicado de rutina: usar una respuesta generativa no validada.\n\n"
+        "VIGILAR / COMPLETAR:\n"
+        "Validar el caso con criterio clinico."
+    )
+
+
 def call_ollama(
     prompt_text: str,
     model: str,
@@ -200,6 +291,34 @@ def call_ollama(
         options={"temperature": temperature},
     )
     return response["response"].strip()
+
+
+def call_ollama_validated(
+    prompt_text: str,
+    model: str,
+    host: str | None,
+    temperature: float,
+    max_retries: int = 2,
+) -> str:
+    prompt_with_contract = f"{prompt_text}\n{STRICT_LANGUAGE_CONTRACT}"
+    retry_instruction = (
+        "\n\nLa respuesta anterior no era valida. Reescribe desde cero, solo en espanol, "
+        "con exactamente estos encabezados: RIESGO:, LECTURA CLINICA:, "
+        "CONDUCTA RECOMENDADA:, VIGILAR / COMPLETAR:. No uses otros idiomas."
+    )
+
+    for attempt in range(max_retries + 1):
+        current_prompt = prompt_with_contract if attempt == 0 else prompt_with_contract + retry_instruction
+        response = call_ollama(
+            prompt_text=current_prompt,
+            model=model,
+            host=host,
+            temperature=temperature,
+        )
+        if is_valid_llm_response(response):
+            return response
+
+    return fallback_llm_response()
 
 
 def main() -> None:
@@ -226,11 +345,11 @@ def main() -> None:
         base_prompt=prompt_text,
         matched_rows=matched_rows,
     )
-    explanation = call_ollama(
+    explanation = call_ollama_validated(
         prompt_text=final_prompt,
         model=args.model,
         host=args.host,
-        temperature=args.temperature,
+        temperature=min(args.temperature, 0.1),
     )
 
     output_path.write_text(explanation, encoding="utf-8")
