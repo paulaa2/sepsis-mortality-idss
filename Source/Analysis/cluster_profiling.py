@@ -58,22 +58,22 @@ def rgb255(red: int, green: int, blue: int) -> np.ndarray:
 
 
 ATLP_COLORS = {
-    # Gibert & Conti aTLP discrete scale: tone = prototype trend,
-    # darkening = uncertainty/heterogeneity based on variation coefficient.
+    # TLP base colors. The annotated TLP panel below uses the continuous
+    # saturation functions from Gibert & Conti (2015), not these discrete tones.
     "green": {
         "pure": rgb255(0, 255, 0),
         "mid": rgb255(0, 150, 0),
-        "dark": rgb255(0, 90, 0),
+        "dark": rgb255(0, 80, 0),
     },
     "yellow": {
         "pure": rgb255(255, 255, 0),
         "mid": rgb255(240, 188, 0),
-        "dark": rgb255(200, 95, 0),
+        "dark": rgb255(180, 180, 0),
     },
     "red": {
         "pure": rgb255(255, 0, 0),
-        "mid": rgb255(200, 0, 0),
-        "dark": rgb255(100, 0, 0),
+        "mid": rgb255(150, 0, 0),
+        "dark": rgb255(80, 0, 0),
     },
 }
 
@@ -751,6 +751,40 @@ def color_label_to_rgb(
     )
 
 
+def clipped_uncertainty(uncertainty: float) -> float:
+    if pd.isna(uncertainty) or not np.isfinite(uncertainty):
+        return 1.0
+    return float(np.clip(uncertainty, 0.0, 1.0))
+
+
+def primary_color_saturation(uncertainty: float) -> int:
+    x = clipped_uncertainty(uncertainty)
+    saturation = 80 + 125 * (1 - x) + 50 * (1 - x) ** 2
+    return int(round(np.clip(saturation, 0, 255)))
+
+
+def yellow_color_saturation(uncertainty: float) -> int:
+    x = clipped_uncertainty(uncertainty)
+    saturation = 180 + 180 * (1 - x) - 143 * (1 - x) ** 2 + 38 * (1 - x) ** 3
+    return int(round(np.clip(saturation, 0, 255)))
+
+
+def atlp_color_to_rgb(label: str, uncertainty: float) -> np.ndarray:
+    """Continuous aTLP color model from Gibert & Conti (2015).
+
+    Red and green use the primary-color saturation function. Yellow uses the
+    compound-color saturation function. Higher uncertainty means darker tone.
+    """
+    if label == "red":
+        return rgb255(primary_color_saturation(uncertainty), 0, 0)
+    if label == "green":
+        return rgb255(0, primary_color_saturation(uncertainty), 0)
+    if label == "yellow":
+        saturation = yellow_color_saturation(uncertainty)
+        return rgb255(saturation, saturation, 0)
+    return atlp_color_to_rgb("yellow", uncertainty)
+
+
 def rgb_to_hex(rgb: np.ndarray) -> str:
     values = np.clip(np.round(rgb * 255), 0, 255).astype(int)
     return f"#{values[0]:02x}{values[1]:02x}{values[2]:02x}"
@@ -829,7 +863,7 @@ def build_atlp_summary(
             )
             darkening = uncertainty_to_darkening_level(uncertainty, atlp_k1, atlp_k2)
             tlp_rgb = color_label_to_rgb(color, "pure")
-            rgb = color_label_to_rgb(color, darkening)
+            rgb = atlp_color_to_rgb(color, uncertainty)
             std = stats["std"] if not pd.isna(stats["std"]) else np.nan
             z_score = (prototype - stats["mean"]) / std if std and not pd.isna(std) else np.nan
             rows.append(
@@ -848,6 +882,7 @@ def build_atlp_summary(
                     "tlp_color_basis": color_basis,
                     "tlp_color_hex": rgb_to_hex(tlp_rgb),
                     "atlp_darkening": darkening,
+                    "atlp_uncertainty_clipped": clipped_uncertainty(uncertainty),
                     "atlp_color_hex": rgb_to_hex(rgb),
                     "uncertainty": uncertainty,
                     "confidence": uncertainty_to_confidence(uncertainty, atlp_k1, atlp_k2),
@@ -868,7 +903,7 @@ def build_atlp_summary(
             )
             darkening = uncertainty_to_darkening_level(uncertainty, atlp_k1, atlp_k2)
             tlp_rgb = color_label_to_rgb(color, "pure")
-            rgb = color_label_to_rgb(color, darkening)
+            rgb = atlp_color_to_rgb(color, uncertainty)
             rows.append(
                 {
                     "cluster": cluster_row.cluster,
@@ -885,6 +920,7 @@ def build_atlp_summary(
                     "tlp_color_basis": color_basis,
                     "tlp_color_hex": rgb_to_hex(tlp_rgb),
                     "atlp_darkening": darkening,
+                    "atlp_uncertainty_clipped": clipped_uncertainty(uncertainty),
                     "atlp_color_hex": rgb_to_hex(rgb),
                     "uncertainty": uncertainty,
                     "confidence": uncertainty_to_confidence(uncertainty, atlp_k1, atlp_k2),
@@ -900,7 +936,7 @@ def build_atlp_summary(
             global_mode = global_stats[variable]["global_mode"]
             global_share = global_stats[variable]["global_mode_share"]
             darkening = uncertainty_to_darkening_level(uncertainty, atlp_k1, atlp_k2)
-            rgb = color_label_to_rgb("yellow", darkening)
+            rgb = atlp_color_to_rgb("yellow", uncertainty)
             rows.append(
                 {
                     "cluster": cluster_row.cluster,
@@ -917,6 +953,7 @@ def build_atlp_summary(
                     "tlp_color_basis": "mode_entropy",
                     "tlp_color_hex": rgb_to_hex(color_label_to_rgb("yellow", "pure")),
                     "atlp_darkening": darkening,
+                    "atlp_uncertainty_clipped": clipped_uncertainty(uncertainty),
                     "atlp_color_hex": rgb_to_hex(rgb),
                     "uncertainty": uncertainty,
                     "confidence": uncertainty_to_confidence(uncertainty, atlp_k1, atlp_k2),
@@ -1112,8 +1149,20 @@ def plot_tlp_like_panel(
     if include_darkening_legend:
         legend_handles.extend(
             [
-                plt.Rectangle((0, 0), 1, 1, color=ATLP_COLORS["red"]["mid"], label="Medium darkening: moderate VC"),
-                plt.Rectangle((0, 0), 1, 1, color=ATLP_COLORS["red"]["dark"], label="Hard darkening: high VC"),
+                plt.Rectangle(
+                    (0, 0),
+                    1,
+                    1,
+                    color=atlp_color_to_rgb("red", 0.5),
+                    label="aTLP medium tone: VC=0.5",
+                ),
+                plt.Rectangle(
+                    (0, 0),
+                    1,
+                    1,
+                    color=atlp_color_to_rgb("red", 1.0),
+                    label="aTLP dark tone: VC>=1",
+                ),
             ]
         )
     ax.legend(
@@ -1127,6 +1176,98 @@ def plot_tlp_like_panel(
     plt.tight_layout(rect=(0, 0.08, 1, 1))
     fig.savefig(output_path, dpi=180, bbox_inches="tight")
     plt.close(fig)
+
+
+def write_rgb_png(output_path: Path, rgb: np.ndarray) -> None:
+    import struct
+    import zlib
+
+    rgb = np.asarray(rgb, dtype=np.uint8)
+    height, width, channels = rgb.shape
+    if channels != 3:
+        raise ValueError("La imagen PNG fallback debe tener 3 canales RGB.")
+
+    def png_chunk(chunk_type: bytes, data: bytes) -> bytes:
+        checksum = zlib.crc32(chunk_type + data) & 0xFFFFFFFF
+        return struct.pack(">I", len(data)) + chunk_type + data + struct.pack(">I", checksum)
+
+    raw_rows = b"".join(b"\x00" + rgb[row].tobytes() for row in range(height))
+    png = b"\x89PNG\r\n\x1a\n"
+    png += png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    png += png_chunk(b"IDAT", zlib.compress(raw_rows, level=9))
+    png += png_chunk(b"IEND", b"")
+    output_path.write_bytes(png)
+
+
+def render_hex_panel_fallback(
+    atlp_summary: pd.DataFrame,
+    output_path: Path,
+    hex_column: str,
+) -> None:
+    _, hex_pivot, _, _ = pivot_atlp_numeric(atlp_summary, hex_column=hex_column)
+    if hex_pivot.empty:
+        return
+
+    cell_h = 42
+    cell_w = 58
+    grid = 2
+    rows = len(hex_pivot.index)
+    cols = len(hex_pivot.columns)
+    height = rows * cell_h + (rows + 1) * grid
+    width = cols * cell_w + (cols + 1) * grid
+    image = np.full((height, width, 3), 255, dtype=np.uint8)
+
+    for i in range(rows):
+        for j in range(cols):
+            color = (hex_to_rgb(str(hex_pivot.iloc[i, j])) * 255).round().astype(np.uint8)
+            y0 = grid + i * (cell_h + grid)
+            x0 = grid + j * (cell_w + grid)
+            image[y0 : y0 + cell_h, x0 : x0 + cell_w, :] = color
+
+    write_rgb_png(output_path, image)
+
+
+def uncertainty_to_rgb(uncertainty: float) -> np.ndarray:
+    x = clipped_uncertainty(uncertainty)
+    if x <= 0.5:
+        ratio = x / 0.5
+        red = int(round(255 * ratio))
+        green = 255
+    else:
+        ratio = (x - 0.5) / 0.5
+        red = 255
+        green = int(round(255 * (1 - ratio)))
+    return np.array([red, green, 0], dtype=np.uint8)
+
+
+def render_uncertainty_heatmap_fallback(atlp_summary: pd.DataFrame, output_path: Path) -> None:
+    _, _, _, uncertainty_pivot = pivot_atlp_numeric(atlp_summary)
+    if uncertainty_pivot.empty:
+        return
+
+    cell_h = 42
+    cell_w = 58
+    grid = 2
+    rows = len(uncertainty_pivot.index)
+    cols = len(uncertainty_pivot.columns)
+    height = rows * cell_h + (rows + 1) * grid
+    width = cols * cell_w + (cols + 1) * grid
+    image = np.full((height, width, 3), 255, dtype=np.uint8)
+
+    for i in range(rows):
+        for j in range(cols):
+            color = uncertainty_to_rgb(float(uncertainty_pivot.iloc[i, j]))
+            y0 = grid + i * (cell_h + grid)
+            x0 = grid + j * (cell_w + grid)
+            image[y0 : y0 + cell_h, x0 : x0 + cell_w, :] = color
+
+    write_rgb_png(output_path, image)
+
+
+def render_plot_fallbacks(atlp_summary: pd.DataFrame, output_dir: Path) -> None:
+    render_hex_panel_fallback(atlp_summary, output_dir / "tlp_panel.png", "tlp_color_hex")
+    render_hex_panel_fallback(atlp_summary, output_dir / "atlp_panel.png", "atlp_color_hex")
+    render_uncertainty_heatmap_fallback(atlp_summary, output_dir / "atlp_uncertainty_heatmap.png")
 
 
 def plot_tlp_panel(atlp_summary: pd.DataFrame, output_path: Path) -> None:
@@ -1361,8 +1502,12 @@ def main() -> None:
             plot_tlp_panel(atlp_summary, output_dir / "tlp_panel.png")
             plot_atlp_panel(atlp_summary, output_dir / "atlp_panel.png")
             plot_uncertainty_heatmap(atlp_summary, output_dir / "atlp_uncertainty_heatmap.png")
-        except ModuleNotFoundError as exc:
-            log(f"Se omiten las figuras porque falta una dependencia opcional: {exc.name}")
+        except (ModuleNotFoundError, ImportError) as exc:
+            log(
+                "No se pudo usar matplotlib/seaborn; se generan figuras fallback "
+                f"sin etiquetas. Detalle: {exc}"
+            )
+            render_plot_fallbacks(atlp_summary, output_dir)
 
     log(f"Profiling ampliado generado en: {output_dir.resolve()}")
     log("Ficheros creados:")
